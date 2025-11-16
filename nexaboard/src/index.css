@@ -36,8 +36,6 @@
   --noise: 1;
 }
 
-
-
 @plugin "daisyui/theme" {
   name: "dark";
   default: true;

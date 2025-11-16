@@ -3,7 +3,9 @@ const FontSizeSlider = ({ fontSize, setFontSize }) => {
     <div className="flex flex-col gap-4">
       <div className="flex items-center justify-between">
         <span className="text-sm font-medium text-base-content/60">Small</span>
-        <div className="badge badge-primary badge-lg px-5 py-4 text-lg font-bold">{fontSize}px</div>
+        <div className="badge badge-primary badge-lg px-5 py-4 text-lg font-bold">
+          {fontSize}px
+        </div>
         <span className="text-sm font-medium text-base-content/60">Large</span>
       </div>
       <input

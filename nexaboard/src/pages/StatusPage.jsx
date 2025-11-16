@@ -3,7 +3,7 @@ const StatusPage = () => {
     <div className="w-full h-full p-8 overflow-auto bg-base-100">
       <div className="max-w-7xl mx-auto">
         <h1 className="text-4xl font-bold mb-8">Dashboard</h1>
-        
+
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {/* System Status Card */}
           <div className="bg-base-200 rounded-xl p-6 shadow-lg border border-base-300 hover:shadow-xl transition-shadow">
@@ -68,7 +68,9 @@ const StatusPage = () => {
               <div className="w-2 h-2 bg-success rounded-full"></div>
               <div className="flex-1">
                 <p className="text-sm font-medium">System initialized</p>
-                <p className="text-xs text-base-content/50">Ready for operation</p>
+                <p className="text-xs text-base-content/50">
+                  Ready for operation
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-3 p-3 bg-base-100 rounded-lg">
