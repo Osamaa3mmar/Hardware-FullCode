@@ -1,9 +1,11 @@
 const LogoBox = () => {
   return (
-    <div className="w-full py-6 mb-6 flex items-center justify-center border-b-2 border-primary/20">
-      <div className="flex flex-col items-center gap-1">
-        <span className="text-4xl font-black text-primary">N</span>
-        <span className="text-xs font-semibold tracking-widest text-base-content/70">
+    <div className="w-full flex items-center justify-center">
+      <div className="flex flex-col items-center gap-2">
+        <div className="w-12 h-12 rounded-xl bg-primary/10 border-2 border-primary flex items-center justify-center">
+          <span className="text-2xl font-black text-primary">N</span>
+        </div>
+        <span className="text-sm font-bold tracking-wider text-base-content">
           NEXABOARD
         </span>
       </div>

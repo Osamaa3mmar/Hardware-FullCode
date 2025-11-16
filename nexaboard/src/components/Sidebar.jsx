@@ -4,6 +4,9 @@ import {
   Type,
   Image,
   List,
+  FileCode,
+  Camera,
+  Pencil,
   ChevronLeft,
   ChevronRight,
   Sun,
@@ -28,56 +31,92 @@ const Sidebar = ({ onNavigate, currentPage }) => {
     <div
       className={`bg-base-200 h-screen transition-all duration-300 ${
         isCollapsed ? "w-20" : "w-72"
-      } flex flex-col p-5 border-r-2 border-base-300`}
+      } flex flex-col border-r border-base-300 shadow-xl`}
     >
-      <button
-        onClick={() => setIsCollapsed(!isCollapsed)}
-        className="btn btn-sm btn-ghost mb-6 self-end"
+      {/* Logo Section */}
+      <div
+        className={`${
+          isCollapsed ? "py-6" : "py-4"
+        } px-4 border-b border-base-300`}
       >
-        {isCollapsed ? <ChevronRight size={20} /> : <ChevronLeft size={20} />}
-      </button>
-
-      {!isCollapsed && (
-        <>
+        {isCollapsed ? (
+          <div className="flex items-center justify-center">
+            <span className="text-3xl font-black text-primary">N</span>
+          </div>
+        ) : (
           <LogoBox />
-        </>
-      )}
+        )}
+      </div>
 
-      <div className="flex flex-col gap-3 mt-6 flex-1">
+      {/* Toggle Button */}
+      <div className="px-4 py-3 border-b border-base-300/50">
+        <button
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="btn btn-sm btn-ghost w-full gap-2 hover:bg-base-300"
+        >
+          {isCollapsed ? <ChevronRight size={18} /> : <ChevronLeft size={18} />}
+          {!isCollapsed && <span className="text-xs">Collapse</span>}
+        </button>
+      </div>
+
+      {/* Navigation Section */}
+      <div className="flex flex-col gap-3 py-4 px-3 flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide">
         <SidebarButton
           label="Dashboard"
-          icon={<BarChart3 size={20} />}
+          icon={<BarChart3 size={22} />}
           onClick={() => onNavigate("dashboard")}
           isCollapsed={isCollapsed}
           isActive={currentPage === "dashboard"}
         />
         <SidebarButton
           label="Text Mode"
-          icon={<Type size={20} />}
+          icon={<Type size={22} />}
           onClick={() => onNavigate("textMode")}
           isCollapsed={isCollapsed}
           isActive={currentPage === "textMode"}
         />
         <SidebarButton
           label="Image Mode"
-          icon={<Image size={20} />}
+          icon={<Image size={22} />}
           onClick={() => onNavigate("imageMode")}
           isCollapsed={isCollapsed}
           isActive={currentPage === "imageMode"}
         />
         <SidebarButton
+          label="Draw"
+          icon={<Pencil size={22} />}
+          onClick={() => onNavigate("draw")}
+          isCollapsed={isCollapsed}
+          isActive={currentPage === "draw"}
+        />
+        <SidebarButton
+          label="G-code Viewer"
+          icon={<FileCode size={22} />}
+          onClick={() => onNavigate("gcodeViewer")}
+          isCollapsed={isCollapsed}
+          isActive={currentPage === "gcodeViewer"}
+        />
+        <SidebarButton
+          label="Live Cam"
+          icon={<Camera size={22} />}
+          onClick={() => onNavigate("liveCam")}
+          isCollapsed={isCollapsed}
+          isActive={currentPage === "liveCam"}
+        />
+        <SidebarButton
           label="Queue"
-          icon={<List size={20} />}
+          icon={<List size={22} />}
           onClick={() => onNavigate("queue")}
           isCollapsed={isCollapsed}
           isActive={currentPage === "queue"}
         />
       </div>
 
-      <div className="mt-auto pt-4 border-t border-base-300">
+      {/* Theme Toggle Section */}
+      <div className="mt-auto p-3 border-t border-base-300">
         <SidebarButton
           label={theme === "dark" ? "Light Mode" : "Dark Mode"}
-          icon={theme === "dark" ? <Sun size={20} /> : <Moon size={20} />}
+          icon={theme === "dark" ? <Sun size={22} /> : <Moon size={22} />}
           onClick={toggleTheme}
           isCollapsed={isCollapsed}
           isActive={false}

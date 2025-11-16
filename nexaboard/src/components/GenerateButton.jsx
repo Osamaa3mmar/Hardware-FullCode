@@ -1,5 +1,10 @@
-const GenerateButton = () => {
-  const handleGenerate = () => {};
+import { toast } from "sonner";
+
+const GenerateButton = ({ onClick }) => {
+  const handleGenerate = () => {
+    toast.success("G-code generated successfully!");
+    if (onClick) onClick();
+  };
 
   return (
     <button
