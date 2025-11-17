@@ -3,20 +3,32 @@ import axios from "axios";
 const API_BASE_URL = "http://localhost:5000/api";
 
 /**
- * Upload an image and get G-code
+ * Upload an image and get G-code with custom options
  * @param {File} imageFile - The image file to convert
- * @returns {Promise<string>} - The generated G-code text
+ * @param {Object} options - Processing options
+ * @returns {Promise<Object>} - The generated G-code, stats, and processed image
  */
-export async function convertImageToGcode(imageFile) {
+export async function convertImageToGcode(imageFile, options = {}) {
   try {
     const formData = new FormData();
     formData.append("image", imageFile);
+
+    // Add options to formData
+    if (options.imageSize) formData.append("imageSize", options.imageSize);
+    if (options.detailLevel)
+      formData.append("detailLevel", options.detailLevel);
+    if (options.feedRate) formData.append("feedRate", options.feedRate);
+    if (options.penUp !== undefined) formData.append("penUp", options.penUp);
+    if (options.penDown !== undefined)
+      formData.append("penDown", options.penDown);
+    if (options.tolerance !== undefined)
+      formData.append("tolerance", options.tolerance);
 
     const response = await axios.post(`${API_BASE_URL}/convert`, formData, {
       headers: {
         "Content-Type": "multipart/form-data",
       },
-      timeout: 60000, // 60 second timeout for large images
+      timeout: 120000, // 120 second timeout for large images
     });
 
     return response.data;

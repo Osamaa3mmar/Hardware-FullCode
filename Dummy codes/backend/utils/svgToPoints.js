@@ -4,9 +4,10 @@ const { parseSVG, makeAbsolute } = svgPathParser;
 /**
  * Extracts path data from SVG and converts to coordinate arrays
  * @param {string} svgString - The SVG string from Potrace
+ * @param {number} tolerance - Simplification tolerance (default: 0.5)
  * @returns {Array<Array<{x: number, y: number}>>} - Array of paths, each path is an array of points
  */
-export function svgToPoints(svgString) {
+export function svgToPoints(svgString, tolerance = 0.5) {
   try {
     const paths = [];
 
@@ -23,7 +24,7 @@ export function svgToPoints(svgString) {
         for (const subPath of subPaths) {
           if (subPath.length > 0) {
             // Simplify path by removing very close points
-            const simplifiedPath = simplifyPath(subPath, 0.5); // Remove points closer than 0.5mm
+            const simplifiedPath = simplifyPath(subPath, tolerance);
             if (simplifiedPath.length > 0) {
               paths.push(simplifiedPath);
             }

@@ -59,16 +59,31 @@ router.post("/convert", upload.single("image"), async (req, res) => {
 
     console.log("Processing file:", req.file.filename);
 
+    // Parse options from request body
+    const options = {
+      imageSize: parseInt(req.body.imageSize) || 300,
+      detailLevel: parseInt(req.body.detailLevel) || 2,
+      feedRate: parseInt(req.body.feedRate) || 3000,
+      penUp: parseFloat(req.body.penUp) || 5,
+      penDown: parseFloat(req.body.penDown) || -2,
+      tolerance: parseFloat(req.body.tolerance) || 0.5,
+    };
+
+    console.log("Options:", options);
+
     // Read the uploaded file
     const imageBuffer = await fs.readFile(req.file.path);
 
     // Step 1: Vectorize the image (bitmap -> SVG)
     console.log("Vectorizing image...");
-    const svg = await vectorizeImage(imageBuffer);
+    const { svg, processedImage } = await vectorizeImage(imageBuffer, {
+      imageSize: options.imageSize,
+      detailLevel: options.detailLevel,
+    });
 
     // Step 2: Convert SVG paths to coordinate arrays
     console.log("Converting SVG to points...");
-    const paths = svgToPoints(svg);
+    const paths = svgToPoints(svg, options.tolerance);
 
     if (paths.length === 0) {
       // Clean up uploaded file
@@ -82,16 +97,22 @@ router.post("/convert", upload.single("image"), async (req, res) => {
 
     // Step 3: Convert coordinate arrays to G-code
     console.log("Generating G-code...");
-    const gcode = pointsToGcode(paths);
-    // Temporarily disable optimization to test
-    // const optimizedGcode = optimizeGcode(gcode);
+    const { gcode, stats } = pointsToGcode(paths, {
+      feedRate: options.feedRate,
+      penUp: options.penUp,
+      penDown: options.penDown,
+    });
 
     // Clean up uploaded file
     await fs.unlink(req.file.path).catch(console.error);
 
-    // Return G-code as plain text
-    res.set("Content-Type", "text/plain");
-    res.send(gcode); // Send unoptimized G-code for now
+    // Return G-code with metadata
+    res.json({
+      gcode: gcode,
+      processedImage: processedImage,
+      stats: stats,
+      options: options,
+    });
   } catch (error) {
     console.error("Error processing image:", error);
 
