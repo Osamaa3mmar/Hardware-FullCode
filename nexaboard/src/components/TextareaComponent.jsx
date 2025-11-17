@@ -7,16 +7,12 @@ const TextareaComponent = ({ fontSize, textColor }) => {
 
   const handleChange = (e) => {
     const newValue = e.target.value;
+    setText(newValue);
+    setError("");
+    
     const textarea = textareaRef.current;
-
-    textarea.value = newValue;
-
-    if (textarea.scrollHeight > 500) {
-      setError("Text exceeds maximum height. Input blocked.");
-      textarea.value = text;
-    } else {
-      setText(newValue);
-      setError("");
+    if (textarea && textarea.scrollHeight > 500) {
+      setError("Text exceeds maximum height.");
     }
   };
 
@@ -24,17 +20,16 @@ const TextareaComponent = ({ fontSize, textColor }) => {
     e.preventDefault();
     const pastedText = e.clipboardData.getData("text");
     const newValue = text + pastedText;
+    setText(newValue);
+    
     const textarea = textareaRef.current;
-
-    textarea.value = newValue;
-
-    if (textarea.scrollHeight > 500) {
-      setError("Pasted text exceeds maximum height. Paste rejected.");
-      textarea.value = text;
-    } else {
-      setText(newValue);
-      setError("");
-    }
+    setTimeout(() => {
+      if (textarea && textarea.scrollHeight > 500) {
+        setError("Pasted text exceeds maximum height.");
+      } else {
+        setError("");
+      }
+    }, 0);
   };
 
   return (
