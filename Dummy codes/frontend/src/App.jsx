@@ -20,7 +20,7 @@ function App() {
     penDown: -2,
     tolerance: 0.5,
     removeNoise: true,
-    minPathLength: 2
+    minPathLength: 2,
   });
 
   const handleImageUpload = async (imageFile) => {

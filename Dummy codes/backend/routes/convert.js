@@ -67,8 +67,8 @@ router.post("/convert", upload.single("image"), async (req, res) => {
       penUp: parseFloat(req.body.penUp) || 5,
       penDown: parseFloat(req.body.penDown) || -2,
       tolerance: parseFloat(req.body.tolerance) || 0.5,
-      removeNoise: req.body.removeNoise !== 'false',
-      minPathLength: parseFloat(req.body.minPathLength) || 2
+      removeNoise: req.body.removeNoise !== "false",
+      minPathLength: parseFloat(req.body.minPathLength) || 2,
     };
 
     console.log("Options:", options);
@@ -98,21 +98,23 @@ router.post("/convert", upload.single("image"), async (req, res) => {
     // Filter out noise if enabled
     let filteredPaths = paths;
     if (options.removeNoise && options.minPathLength > 0) {
-      filteredPaths = paths.filter(path => {
+      filteredPaths = paths.filter((path) => {
         if (path.length < 2) return false;
-        
+
         // Calculate total path length
         let totalLength = 0;
         for (let i = 1; i < path.length; i++) {
-          const dx = path[i].x - path[i-1].x;
-          const dy = path[i].y - path[i-1].y;
+          const dx = path[i].x - path[i - 1].x;
+          const dy = path[i].y - path[i - 1].y;
           totalLength += Math.sqrt(dx * dx + dy * dy);
         }
-        
+
         return totalLength >= options.minPathLength;
       });
-      
-      console.log(`Filtered ${paths.length - filteredPaths.length} noise paths`);
+
+      console.log(
+        `Filtered ${paths.length - filteredPaths.length} noise paths`
+      );
     }
 
     console.log(`Found ${filteredPaths.length} paths`);
