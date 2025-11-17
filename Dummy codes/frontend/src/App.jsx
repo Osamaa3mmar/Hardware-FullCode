@@ -19,6 +19,8 @@ function App() {
     penUp: 5,
     penDown: -2,
     tolerance: 0.5,
+    removeNoise: true,
+    minPathLength: 2
   });
 
   const handleImageUpload = async (imageFile) => {

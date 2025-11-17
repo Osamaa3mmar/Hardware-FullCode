@@ -9,6 +9,8 @@ function Settings({ onSettingsChange, isDisabled }) {
     penUp: 5,
     penDown: -2,
     tolerance: 0.5,
+    removeNoise: true,
+    minPathLength: 2
   });
 
   const [showAdvanced, setShowAdvanced] = useState(false);
@@ -76,6 +78,19 @@ function Settings({ onSettingsChange, isDisabled }) {
         <span className="setting-hint">Your plotter speed</span>
       </div>
 
+      <div className="setting-group">
+        <label className="checkbox-label">
+          <input
+            type="checkbox"
+            checked={settings.removeNoise}
+            onChange={(e) => handleChange("removeNoise", e.target.checked)}
+            disabled={isDisabled}
+          />
+          <span>Remove Noise & Small Artifacts</span>
+        </label>
+        <span className="setting-hint">Removes tiny dots and speckles</span>
+      </div>
+
       <button
         className="toggle-advanced"
         onClick={() => setShowAdvanced(!showAdvanced)}
@@ -133,6 +148,26 @@ function Settings({ onSettingsChange, isDisabled }) {
             </label>
             <span className="setting-hint">
               Higher = fewer points, smaller file
+            </span>
+          </div>
+
+          <div className="setting-group">
+            <label>
+              Minimum Path Length (mm)
+              <input
+                type="number"
+                value={settings.minPathLength}
+                onChange={(e) =>
+                  handleChange("minPathLength", parseFloat(e.target.value))
+                }
+                min="0.5"
+                max="10"
+                step="0.5"
+                disabled={isDisabled}
+              />
+            </label>
+            <span className="setting-hint">
+              Ignore paths shorter than this (removes dots)
             </span>
           </div>
         </div>

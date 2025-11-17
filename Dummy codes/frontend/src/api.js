@@ -23,6 +23,10 @@ export async function convertImageToGcode(imageFile, options = {}) {
       formData.append("penDown", options.penDown);
     if (options.tolerance !== undefined)
       formData.append("tolerance", options.tolerance);
+    if (options.removeNoise !== undefined)
+      formData.append("removeNoise", options.removeNoise);
+    if (options.minPathLength !== undefined)
+      formData.append("minPathLength", options.minPathLength);
 
     const response = await axios.post(`${API_BASE_URL}/convert`, formData, {
       headers: {
