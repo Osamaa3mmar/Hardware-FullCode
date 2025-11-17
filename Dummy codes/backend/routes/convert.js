@@ -1,17 +1,17 @@
-import express from 'express';
-import multer from 'multer';
-import path from 'path';
-import fs from 'fs/promises';
-import { vectorizeImage } from '../utils/vectorize.js';
-import { svgToPoints } from '../utils/svgToPoints.js';
-import { pointsToGcode, optimizeGcode } from '../utils/pointsToGcode.js';
+import express from "express";
+import multer from "multer";
+import path from "path";
+import fs from "fs/promises";
+import { vectorizeImage } from "../utils/vectorize.js";
+import { svgToPoints } from "../utils/svgToPoints.js";
+import { pointsToGcode, optimizeGcode } from "../utils/pointsToGcode.js";
 
 const router = express.Router();
 
 // Configure Multer for file uploads
 const storage = multer.diskStorage({
   destination: async (req, file, cb) => {
-    const uploadDir = 'uploads';
+    const uploadDir = "uploads";
     try {
       await fs.mkdir(uploadDir, { recursive: true });
       cb(null, uploadDir);
@@ -20,85 +20,89 @@ const storage = multer.diskStorage({
     }
   },
   filename: (req, file, cb) => {
-    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, 'upload-' + uniqueSuffix + path.extname(file.originalname));
-  }
+    const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+    cb(null, "upload-" + uniqueSuffix + path.extname(file.originalname));
+  },
 });
 
 const upload = multer({
   storage: storage,
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB max file size
+    fileSize: 10 * 1024 * 1024, // 10MB max file size
   },
   fileFilter: (req, file, cb) => {
     // Accept images only
     const allowedTypes = /jpeg|jpg|png|gif|bmp|tiff|webp/;
-    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const extname = allowedTypes.test(
+      path.extname(file.originalname).toLowerCase()
+    );
     const mimetype = allowedTypes.test(file.mimetype);
 
     if (mimetype && extname) {
       return cb(null, true);
     } else {
-      cb(new Error('Only image files are allowed!'));
+      cb(new Error("Only image files are allowed!"));
     }
-  }
+  },
 });
 
 /**
  * POST /api/convert
  * Accepts an image file and converts it to G-code for pen plotter
  */
-router.post('/convert', upload.single('image'), async (req, res) => {
+router.post("/convert", upload.single("image"), async (req, res) => {
   try {
     // Check if file was uploaded
     if (!req.file) {
-      return res.status(400).json({ error: 'No image file uploaded' });
+      return res.status(400).json({ error: "No image file uploaded" });
     }
 
-    console.log('Processing file:', req.file.filename);
+    console.log("Processing file:", req.file.filename);
 
     // Read the uploaded file
     const imageBuffer = await fs.readFile(req.file.path);
 
     // Step 1: Vectorize the image (bitmap -> SVG)
-    console.log('Vectorizing image...');
+    console.log("Vectorizing image...");
     const svg = await vectorizeImage(imageBuffer);
 
     // Step 2: Convert SVG paths to coordinate arrays
-    console.log('Converting SVG to points...');
+    console.log("Converting SVG to points...");
     const paths = svgToPoints(svg);
 
     if (paths.length === 0) {
       // Clean up uploaded file
       await fs.unlink(req.file.path).catch(console.error);
-      return res.status(400).json({ error: 'No paths found in image. Try an image with more contrast.' });
+      return res.status(400).json({
+        error: "No paths found in image. Try an image with more contrast.",
+      });
     }
 
     console.log(`Found ${paths.length} paths`);
 
     // Step 3: Convert coordinate arrays to G-code
-    console.log('Generating G-code...');
+    console.log("Generating G-code...");
     const gcode = pointsToGcode(paths);
-    const optimizedGcode = optimizeGcode(gcode);
+    // Temporarily disable optimization to test
+    // const optimizedGcode = optimizeGcode(gcode);
 
     // Clean up uploaded file
     await fs.unlink(req.file.path).catch(console.error);
 
     // Return G-code as plain text
-    res.set('Content-Type', 'text/plain');
-    res.send(optimizedGcode);
-
+    res.set("Content-Type", "text/plain");
+    res.send(gcode); // Send unoptimized G-code for now
   } catch (error) {
-    console.error('Error processing image:', error);
-    
+    console.error("Error processing image:", error);
+
     // Clean up uploaded file if it exists
     if (req.file) {
       await fs.unlink(req.file.path).catch(console.error);
     }
 
-    res.status(500).json({ 
-      error: 'Failed to process image', 
-      details: error.message 
+    res.status(500).json({
+      error: "Failed to process image",
+      details: error.message,
     });
   }
 });
@@ -107,8 +111,11 @@ router.post('/convert', upload.single('image'), async (req, res) => {
  * GET /api/health
  * Health check endpoint
  */
-router.get('/health', (req, res) => {
-  res.json({ status: 'ok', message: 'Image to G-code converter API is running' });
+router.get("/health", (req, res) => {
+  res.json({
+    status: "ok",
+    message: "Image to G-code converter API is running",
+  });
 });
 
 export default router;

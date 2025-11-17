@@ -1,6 +1,6 @@
-import sharp from 'sharp';
-import potrace from 'potrace';
-import { promisify } from 'util';
+import sharp from "sharp";
+import potrace from "potrace";
+import { promisify } from "util";
 
 const potraceTrace = promisify(potrace.trace);
 
@@ -16,8 +16,8 @@ export async function vectorizeImage(imageBuffer) {
     // Convert to grayscale and apply threshold for black/white
     const processedBuffer = await sharp(imageBuffer)
       .resize(500, null, {
-        fit: 'inside',
-        withoutEnlargement: false
+        fit: "inside",
+        withoutEnlargement: false,
       })
       .greyscale()
       .normalise()
@@ -33,13 +33,13 @@ export async function vectorizeImage(imageBuffer) {
       optTolerance: 0.2,
       threshold: 128,
       blackOnWhite: true,
-      color: 'black',
-      background: 'transparent'
+      color: "black",
+      background: "transparent",
     });
 
     return svg;
   } catch (error) {
-    console.error('Error in vectorizeImage:', error);
+    console.error("Error in vectorizeImage:", error);
     throw new Error(`Failed to vectorize image: ${error.message}`);
   }
 }

@@ -1,5 +1,5 @@
-import { useState, useRef } from 'react';
-import './ImageUploader.css';
+import { useState, useRef } from "react";
+import "./ImageUploader.css";
 
 function ImageUploader({ onUpload, isLoading }) {
   const [selectedFile, setSelectedFile] = useState(null);
@@ -8,17 +8,17 @@ function ImageUploader({ onUpload, isLoading }) {
 
   const handleFileSelect = (event) => {
     const file = event.target.files[0];
-    
+
     if (file) {
       // Validate file type
-      if (!file.type.startsWith('image/')) {
-        alert('Please select a valid image file');
+      if (!file.type.startsWith("image/")) {
+        alert("Please select a valid image file");
         return;
       }
 
       // Validate file size (max 10MB)
       if (file.size > 10 * 1024 * 1024) {
-        alert('File size must be less than 10MB');
+        alert("File size must be less than 10MB");
         return;
       }
 
@@ -43,14 +43,14 @@ function ImageUploader({ onUpload, isLoading }) {
     setSelectedFile(null);
     setPreviewUrl(null);
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
   };
 
   return (
     <div className="image-uploader">
       <h2>Upload Image</h2>
-      
+
       <div className="upload-area">
         <input
           type="file"
@@ -62,7 +62,7 @@ function ImageUploader({ onUpload, isLoading }) {
           id="file-input"
         />
         <label htmlFor="file-input" className="file-label">
-          {selectedFile ? selectedFile.name : 'Choose an image file'}
+          {selectedFile ? selectedFile.name : "Choose an image file"}
         </label>
       </div>
 
@@ -79,14 +79,11 @@ function ImageUploader({ onUpload, isLoading }) {
           disabled={!selectedFile || isLoading}
           className="btn btn-primary"
         >
-          {isLoading ? 'Converting...' : 'Generate G-code'}
+          {isLoading ? "Converting..." : "Generate G-code"}
         </button>
-        
+
         {selectedFile && !isLoading && (
-          <button
-            onClick={handleClear}
-            className="btn btn-secondary"
-          >
+          <button onClick={handleClear} className="btn btn-secondary">
             Clear
           </button>
         )}

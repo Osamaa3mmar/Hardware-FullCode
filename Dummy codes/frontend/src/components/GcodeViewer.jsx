@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import './GcodeViewer.css';
+import { useState } from "react";
+import "./GcodeViewer.css";
 
 function GcodeViewer({ gcode }) {
   const [copied, setCopied] = useState(false);
@@ -11,9 +11,9 @@ function GcodeViewer({ gcode }) {
   };
 
   const handleDownload = () => {
-    const blob = new Blob([gcode], { type: 'text/plain' });
+    const blob = new Blob([gcode], { type: "text/plain" });
     const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
+    const a = document.createElement("a");
     a.href = url;
     a.download = `plotter-${Date.now()}.gcode`;
     document.body.appendChild(a);
@@ -23,14 +23,16 @@ function GcodeViewer({ gcode }) {
   };
 
   const getGcodeStats = () => {
-    const lines = gcode.split('\n').filter(line => line.trim() && !line.trim().startsWith(';'));
+    const lines = gcode
+      .split("\n")
+      .filter((line) => line.trim() && !line.trim().startsWith(";"));
     const pathMatches = gcode.match(/; Path \d+/g);
     const pathCount = pathMatches ? pathMatches.length : 0;
-    
+
     return {
       lines: lines.length,
       paths: pathCount,
-      size: new Blob([gcode]).size
+      size: new Blob([gcode]).size,
     };
   };
 
@@ -47,13 +49,15 @@ function GcodeViewer({ gcode }) {
         <div className="stats">
           <span className="stat-item">📊 {stats.lines} commands</span>
           <span className="stat-item">🛤️ {stats.paths} paths</span>
-          <span className="stat-item">💾 {(stats.size / 1024).toFixed(2)} KB</span>
+          <span className="stat-item">
+            💾 {(stats.size / 1024).toFixed(2)} KB
+          </span>
         </div>
       </div>
 
       <div className="button-group">
         <button onClick={handleCopy} className="btn btn-secondary">
-          {copied ? '✓ Copied!' : '📋 Copy to Clipboard'}
+          {copied ? "✓ Copied!" : "📋 Copy to Clipboard"}
         </button>
         <button onClick={handleDownload} className="btn btn-primary">
           ⬇️ Download .gcode

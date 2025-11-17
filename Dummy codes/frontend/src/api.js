@@ -1,6 +1,6 @@
-import axios from 'axios';
+import axios from "axios";
 
-const API_BASE_URL = 'http://localhost:5000/api';
+const API_BASE_URL = "http://localhost:5000/api";
 
 /**
  * Upload an image and get G-code
@@ -10,11 +10,11 @@ const API_BASE_URL = 'http://localhost:5000/api';
 export async function convertImageToGcode(imageFile) {
   try {
     const formData = new FormData();
-    formData.append('image', imageFile);
+    formData.append("image", imageFile);
 
     const response = await axios.post(`${API_BASE_URL}/convert`, formData, {
       headers: {
-        'Content-Type': 'multipart/form-data',
+        "Content-Type": "multipart/form-data",
       },
       timeout: 60000, // 60 second timeout for large images
     });
@@ -23,10 +23,12 @@ export async function convertImageToGcode(imageFile) {
   } catch (error) {
     if (error.response) {
       // Server responded with error
-      throw new Error(error.response.data.error || 'Failed to convert image');
+      throw new Error(error.response.data.error || "Failed to convert image");
     } else if (error.request) {
       // Request made but no response
-      throw new Error('No response from server. Make sure the backend is running.');
+      throw new Error(
+        "No response from server. Make sure the backend is running."
+      );
     } else {
       // Error setting up request
       throw new Error(error.message);
@@ -43,6 +45,6 @@ export async function checkHealth() {
     const response = await axios.get(`${API_BASE_URL}/health`);
     return response.data;
   } catch (error) {
-    throw new Error('API is not responding');
+    throw new Error("API is not responding");
   }
 }

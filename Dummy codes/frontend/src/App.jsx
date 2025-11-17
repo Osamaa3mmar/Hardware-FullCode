@@ -1,25 +1,25 @@
-import { useState } from 'react';
-import ImageUploader from './components/ImageUploader';
-import GcodeViewer from './components/GcodeViewer';
-import { convertImageToGcode } from './api';
-import './App.css';
+import { useState } from "react";
+import ImageUploader from "./components/ImageUploader";
+import GcodeViewer from "./components/GcodeViewer";
+import { convertImageToGcode } from "./api";
+import "./App.css";
 
 function App() {
-  const [gcode, setGcode] = useState('');
+  const [gcode, setGcode] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
   const handleImageUpload = async (imageFile) => {
     setIsLoading(true);
     setError(null);
-    setGcode('');
+    setGcode("");
 
     try {
       const generatedGcode = await convertImageToGcode(imageFile);
       setGcode(generatedGcode);
     } catch (err) {
       setError(err.message);
-      console.error('Upload error:', err);
+      console.error("Upload error:", err);
     } finally {
       setIsLoading(false);
     }
@@ -33,10 +33,7 @@ function App() {
       </header>
 
       <main className="app-main">
-        <ImageUploader 
-          onUpload={handleImageUpload} 
-          isLoading={isLoading}
-        />
+        <ImageUploader onUpload={handleImageUpload} isLoading={isLoading} />
 
         {error && (
           <div className="error-message">

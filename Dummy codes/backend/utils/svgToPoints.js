@@ -1,4 +1,4 @@
-import svgPathParser from 'svg-path-parser';
+import svgPathParser from "svg-path-parser";
 const { parseSVG, makeAbsolute } = svgPathParser;
 
 /**
@@ -9,151 +9,183 @@ const { parseSVG, makeAbsolute } = svgPathParser;
 export function svgToPoints(svgString) {
   try {
     const paths = [];
-    
+
     // Extract all path elements from SVG
     const pathRegex = /<path[^>]*\sd="([^"]*)"/g;
     let match;
 
     while ((match = pathRegex.exec(svgString)) !== null) {
       const pathData = match[1];
-      
+
       if (pathData && pathData.trim()) {
-        const points = parsePathToPoints(pathData);
-        if (points.length > 0) {
-          paths.push(points);
+        const subPaths = parsePathToPoints(pathData);
+        // parsePathToPoints now returns an array of paths, so add them all
+        for (const subPath of subPaths) {
+          if (subPath.length > 0) {
+            paths.push(subPath);
+          }
         }
       }
     }
 
     return paths;
   } catch (error) {
-    console.error('Error in svgToPoints:', error);
+    console.error("Error in svgToPoints:", error);
     throw new Error(`Failed to parse SVG paths: ${error.message}`);
   }
 }
 
 /**
- * Parses a single SVG path string into an array of points
+ * Parses a single SVG path string into multiple sub-paths (split on moveto)
  * @param {string} pathData - The 'd' attribute value from an SVG path
- * @returns {Array<{x: number, y: number}>} - Array of coordinate points
+ * @returns {Array<Array<{x: number, y: number}>>} - Array of sub-paths, each containing coordinate points
  */
 function parsePathToPoints(pathData) {
-  const points = [];
-  
+  const allPaths = [];
+  let currentPath = [];
+
   try {
     // Parse the path and make all commands absolute
     const commands = makeAbsolute(parseSVG(pathData));
-    
+
     let currentX = 0;
     let currentY = 0;
 
     for (const cmd of commands) {
       switch (cmd.command) {
-        case 'moveto':
+        case "moveto":
+          // If we already have points in current path, save it and start new one
+          if (currentPath.length > 0) {
+            allPaths.push([...currentPath]);
+            currentPath = [];
+          }
+          // Start new path with this point
           currentX = cmd.x;
           currentY = cmd.y;
-          points.push({ x: currentX, y: currentY });
+          currentPath.push({ x: currentX, y: currentY });
           break;
 
-        case 'lineto':
+        case "lineto":
           currentX = cmd.x;
           currentY = cmd.y;
-          points.push({ x: currentX, y: currentY });
+          currentPath.push({ x: currentX, y: currentY });
           break;
 
-        case 'horizontal lineto':
+        case "horizontal lineto":
           currentX = cmd.x;
-          points.push({ x: currentX, y: currentY });
+          currentPath.push({ x: currentX, y: currentY });
           break;
 
-        case 'vertical lineto':
+        case "vertical lineto":
           currentY = cmd.y;
-          points.push({ x: currentX, y: currentY });
+          currentPath.push({ x: currentX, y: currentY });
           break;
 
-        case 'curveto':
+        case "curveto":
           // Cubic Bezier curve - sample multiple points along the curve
           const cubicPoints = sampleCubicBezier(
-            currentX, currentY,
-            cmd.x1, cmd.y1,
-            cmd.x2, cmd.y2,
-            cmd.x, cmd.y,
+            currentX,
+            currentY,
+            cmd.x1,
+            cmd.y1,
+            cmd.x2,
+            cmd.y2,
+            cmd.x,
+            cmd.y,
             20 // Sample 20 points for smooth curves
           );
-          points.push(...cubicPoints);
+          currentPath.push(...cubicPoints);
           currentX = cmd.x;
           currentY = cmd.y;
           break;
 
-        case 'smooth curveto':
+        case "smooth curveto":
           // Smooth cubic Bezier
           const smoothCubicPoints = sampleCubicBezier(
-            currentX, currentY,
-            cmd.x2, cmd.y2,
-            cmd.x2, cmd.y2,
-            cmd.x, cmd.y,
+            currentX,
+            currentY,
+            cmd.x2,
+            cmd.y2,
+            cmd.x2,
+            cmd.y2,
+            cmd.x,
+            cmd.y,
             20
           );
-          points.push(...smoothCubicPoints);
+          currentPath.push(...smoothCubicPoints);
           currentX = cmd.x;
           currentY = cmd.y;
           break;
 
-        case 'quadratic curveto':
+        case "quadratic curveto":
           // Quadratic Bezier curve
           const quadPoints = sampleQuadraticBezier(
-            currentX, currentY,
-            cmd.x1, cmd.y1,
-            cmd.x, cmd.y,
+            currentX,
+            currentY,
+            cmd.x1,
+            cmd.y1,
+            cmd.x,
+            cmd.y,
             15 // Sample 15 points
           );
-          points.push(...quadPoints);
+          currentPath.push(...quadPoints);
           currentX = cmd.x;
           currentY = cmd.y;
           break;
 
-        case 'smooth quadratic curveto':
+        case "smooth quadratic curveto":
           // Smooth quadratic Bezier
           const smoothQuadPoints = sampleQuadraticBezier(
-            currentX, currentY,
-            currentX, currentY,
-            cmd.x, cmd.y,
+            currentX,
+            currentY,
+            currentX,
+            currentY,
+            cmd.x,
+            cmd.y,
             15
           );
-          points.push(...smoothQuadPoints);
+          currentPath.push(...smoothQuadPoints);
           currentX = cmd.x;
           currentY = cmd.y;
           break;
 
-        case 'closepath':
+        case "closepath":
           // Close the path by returning to the first point
-          if (points.length > 0) {
-            points.push({ x: points[0].x, y: points[0].y });
+          if (currentPath.length > 0) {
+            currentPath.push({ x: currentPath[0].x, y: currentPath[0].y });
           }
           break;
 
-        case 'arc':
+        case "arc":
           // Approximate arc with line segments
           const arcPoints = sampleArc(
-            currentX, currentY,
-            cmd.rx, cmd.ry,
+            currentX,
+            currentY,
+            cmd.rx,
+            cmd.ry,
             cmd.xAxisRotation,
             cmd.largeArc,
             cmd.sweep,
-            cmd.x, cmd.y,
+            cmd.x,
+            cmd.y,
             20
           );
-          points.push(...arcPoints);
+          currentPath.push(...arcPoints);
           currentX = cmd.x;
           currentY = cmd.y;
           break;
       }
     }
+
+    // Don't forget to add the last path
+    if (currentPath.length > 0) {
+      allPaths.push(currentPath);
+    }
   } catch (error) {
-    console.error('Error parsing path data:', error);
+    console.error("Error parsing path data:", error);
   }
 
-  return points;
+  return allPaths;
 }
 
 /**
@@ -161,24 +193,26 @@ function parsePathToPoints(pathData) {
  */
 function sampleCubicBezier(x0, y0, x1, y1, x2, y2, x3, y3, numPoints) {
   const points = [];
-  
+
   for (let i = 1; i <= numPoints; i++) {
     const t = i / numPoints;
     const mt = 1 - t;
-    
-    const x = mt * mt * mt * x0 +
-              3 * mt * mt * t * x1 +
-              3 * mt * t * t * x2 +
-              t * t * t * x3;
-              
-    const y = mt * mt * mt * y0 +
-              3 * mt * mt * t * y1 +
-              3 * mt * t * t * y2 +
-              t * t * t * y3;
-    
+
+    const x =
+      mt * mt * mt * x0 +
+      3 * mt * mt * t * x1 +
+      3 * mt * t * t * x2 +
+      t * t * t * x3;
+
+    const y =
+      mt * mt * mt * y0 +
+      3 * mt * mt * t * y1 +
+      3 * mt * t * t * y2 +
+      t * t * t * y3;
+
     points.push({ x: Math.round(x * 100) / 100, y: Math.round(y * 100) / 100 });
   }
-  
+
   return points;
 }
 
@@ -187,17 +221,17 @@ function sampleCubicBezier(x0, y0, x1, y1, x2, y2, x3, y3, numPoints) {
  */
 function sampleQuadraticBezier(x0, y0, x1, y1, x2, y2, numPoints) {
   const points = [];
-  
+
   for (let i = 1; i <= numPoints; i++) {
     const t = i / numPoints;
     const mt = 1 - t;
-    
+
     const x = mt * mt * x0 + 2 * mt * t * x1 + t * t * x2;
     const y = mt * mt * y0 + 2 * mt * t * y1 + t * t * y2;
-    
+
     points.push({ x: Math.round(x * 100) / 100, y: Math.round(y * 100) / 100 });
   }
-  
+
   return points;
 }
 
@@ -207,14 +241,17 @@ function sampleQuadraticBezier(x0, y0, x1, y1, x2, y2, numPoints) {
  */
 function sampleArc(x0, y0, rx, ry, rotation, largeArc, sweep, x, y, numPoints) {
   const points = [];
-  
+
   // Simple linear interpolation for arc approximation
   for (let i = 1; i <= numPoints; i++) {
     const t = i / numPoints;
     const px = x0 + (x - x0) * t;
     const py = y0 + (y - y0) * t;
-    points.push({ x: Math.round(px * 100) / 100, y: Math.round(py * 100) / 100 });
+    points.push({
+      x: Math.round(px * 100) / 100,
+      y: Math.round(py * 100) / 100,
+    });
   }
-  
+
   return points;
 }

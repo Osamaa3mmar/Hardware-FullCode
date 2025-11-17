@@ -11,6 +11,7 @@ npm install
 ## Running the App
 
 Development mode:
+
 ```bash
 npm run dev
 ```
@@ -18,11 +19,13 @@ npm run dev
 The app will run on `http://localhost:5173`
 
 Build for production:
+
 ```bash
 npm run build
 ```
 
 Preview production build:
+
 ```bash
 npm run preview
 ```

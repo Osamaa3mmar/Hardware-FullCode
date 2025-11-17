@@ -45,6 +45,7 @@ Dummy codes/
 ## 🛠️ Installation
 
 ### Prerequisites
+
 - Node.js 16+ installed
 - npm or yarn package manager
 
@@ -92,22 +93,27 @@ The generated G-code follows pen plotter conventions:
 ## 🔧 API Endpoints
 
 ### POST /api/convert
+
 Upload an image and receive G-code
 
 **Request:**
+
 - Content-Type: `multipart/form-data`
 - Field name: `image`
 
 **Response:**
+
 - Content-Type: `text/plain`
 - Body: G-code text
 
 ### GET /api/health
+
 Check API status
 
 ## 📦 Dependencies
 
 ### Backend
+
 - `express` - Web framework
 - `multer` - File upload handling
 - `sharp` - Image processing
@@ -116,6 +122,7 @@ Check API status
 - `cors` - Cross-origin support
 
 ### Frontend
+
 - `react` - UI framework
 - `react-dom` - React rendering
 - `axios` - HTTP client
@@ -132,14 +139,17 @@ Check API status
 ## 🐛 Troubleshooting
 
 **Backend not starting?**
+
 - Check if port 5000 is available
 - Ensure all dependencies are installed
 
 **Frontend can't connect?**
+
 - Verify backend is running on port 5000
 - Check CORS settings in backend
 
 **Poor G-code quality?**
+
 - Try preprocessing the image (increase contrast)
 - Use simpler images with fewer details
 - Adjust threshold settings in vectorize.js

@@ -15,6 +15,7 @@ npm start
 ```
 
 For development with auto-reload:
+
 ```bash
 npm run dev
 ```
@@ -24,21 +25,26 @@ The server will run on `http://localhost:5000`
 ## API Endpoints
 
 ### POST /api/convert
+
 Upload an image file and receive G-code for pen plotter.
 
 **Request:**
+
 - Method: POST
 - Content-Type: multipart/form-data
 - Body: image file (field name: "image")
 
 **Response:**
+
 - Content-Type: text/plain
 - Body: G-code text
 
 ### GET /api/health
+
 Check if the API is running.
 
 **Response:**
+
 ```json
 {
   "status": "ok",
