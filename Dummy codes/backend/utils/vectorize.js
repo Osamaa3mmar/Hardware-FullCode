@@ -12,10 +12,10 @@ const potraceTrace = promisify(potrace.trace);
 export async function vectorizeImage(imageBuffer) {
   try {
     // Step 1: Process image with Sharp
-    // Resize to 500px width while maintaining aspect ratio
+    // Resize to 300px width (reduced from 500) for smaller G-code
     // Convert to grayscale and apply threshold for black/white
     const processedBuffer = await sharp(imageBuffer)
-      .resize(500, null, {
+      .resize(300, null, {
         fit: "inside",
         withoutEnlargement: false,
       })
@@ -27,10 +27,10 @@ export async function vectorizeImage(imageBuffer) {
     // Step 2: Vectorize with Potrace
     const svg = await potraceTrace(processedBuffer, {
       turnPolicy: potrace.Potrace.TURNPOLICY_MINORITY,
-      turdSize: 2,
+      turdSize: 4, // Increased from 2 - ignore smaller speckles
       optCurve: true,
       alphaMax: 1,
-      optTolerance: 0.2,
+      optTolerance: 0.4, // Increased from 0.2 - more aggressive curve optimization
       threshold: 128,
       blackOnWhite: true,
       color: "black",

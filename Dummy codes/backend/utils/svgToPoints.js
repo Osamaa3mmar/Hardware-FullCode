@@ -22,7 +22,11 @@ export function svgToPoints(svgString) {
         // parsePathToPoints now returns an array of paths, so add them all
         for (const subPath of subPaths) {
           if (subPath.length > 0) {
-            paths.push(subPath);
+            // Simplify path by removing very close points
+            const simplifiedPath = simplifyPath(subPath, 0.5); // Remove points closer than 0.5mm
+            if (simplifiedPath.length > 0) {
+              paths.push(simplifiedPath);
+            }
           }
         }
       }
@@ -33,6 +37,38 @@ export function svgToPoints(svgString) {
     console.error("Error in svgToPoints:", error);
     throw new Error(`Failed to parse SVG paths: ${error.message}`);
   }
+}
+
+/**
+ * Simplify path by removing points that are very close to each other
+ * @param {Array<{x: number, y: number}>} path - Array of points
+ * @param {number} tolerance - Minimum distance between points in mm
+ * @returns {Array<{x: number, y: number}>} - Simplified path
+ */
+function simplifyPath(path, tolerance = 0.5) {
+  if (path.length <= 2) return path;
+
+  const simplified = [path[0]]; // Always keep first point
+
+  for (let i = 1; i < path.length - 1; i++) {
+    const lastPoint = simplified[simplified.length - 1];
+    const currentPoint = path[i];
+
+    // Calculate distance from last kept point
+    const dx = currentPoint.x - lastPoint.x;
+    const dy = currentPoint.y - lastPoint.y;
+    const distance = Math.sqrt(dx * dx + dy * dy);
+
+    // Only keep point if it's far enough from the last kept point
+    if (distance >= tolerance) {
+      simplified.push(currentPoint);
+    }
+  }
+
+  // Always keep last point
+  simplified.push(path[path.length - 1]);
+
+  return simplified;
 }
 
 /**
@@ -92,7 +128,7 @@ function parsePathToPoints(pathData) {
             cmd.y2,
             cmd.x,
             cmd.y,
-            20 // Sample 20 points for smooth curves
+            8 // Sample 8 points - reduced for smaller G-code
           );
           currentPath.push(...cubicPoints);
           currentX = cmd.x;
@@ -110,7 +146,7 @@ function parsePathToPoints(pathData) {
             cmd.y2,
             cmd.x,
             cmd.y,
-            20
+            8
           );
           currentPath.push(...smoothCubicPoints);
           currentX = cmd.x;
@@ -126,7 +162,7 @@ function parsePathToPoints(pathData) {
             cmd.y1,
             cmd.x,
             cmd.y,
-            15 // Sample 15 points
+            6 // Sample 6 points - reduced for smaller G-code
           );
           currentPath.push(...quadPoints);
           currentX = cmd.x;
@@ -142,7 +178,7 @@ function parsePathToPoints(pathData) {
             currentY,
             cmd.x,
             cmd.y,
-            15
+            6
           );
           currentPath.push(...smoothQuadPoints);
           currentX = cmd.x;
@@ -168,7 +204,7 @@ function parsePathToPoints(pathData) {
             cmd.sweep,
             cmd.x,
             cmd.y,
-            20
+            8
           );
           currentPath.push(...arcPoints);
           currentX = cmd.x;
