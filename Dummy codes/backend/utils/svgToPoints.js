@@ -9,9 +9,29 @@ const { parseSVG, makeAbsolute } = svgPathParser;
  */
 export function svgToPoints(svgString, tolerance = 0.5) {
   try {
-    const paths = [];
+    // CNC working area dimensions in mm (GRBL limits: X=60, Y=40)
+    const CNC_WIDTH = 60;
+    const CNC_HEIGHT = 40;
 
-    // Extract all path elements from SVG
+    // Extract SVG viewBox to get original dimensions
+    const viewBoxMatch = svgString.match(/viewBox="([^"]+)"/);
+    let svgWidth = 300;
+    let svgHeight = 300;
+    let minX = 0;
+    let minY = 0;
+    
+    if (viewBoxMatch) {
+      const viewBox = viewBoxMatch[1].split(/\s+/);
+      minX = parseFloat(viewBox[0]) || 0;
+      minY = parseFloat(viewBox[1]) || 0;
+      svgWidth = parseFloat(viewBox[2]) || 300;
+      svgHeight = parseFloat(viewBox[3]) || 300;
+    }
+
+    const paths = [];
+    let allPoints = [];
+
+    // Extract all path elements from SVG - first pass to get all points
     const pathRegex = /<path[^>]*\sd="([^"]*)"/g;
     let match;
 
@@ -20,17 +40,47 @@ export function svgToPoints(svgString, tolerance = 0.5) {
 
       if (pathData && pathData.trim()) {
         const subPaths = parsePathToPoints(pathData);
-        // parsePathToPoints now returns an array of paths, so add them all
         for (const subPath of subPaths) {
           if (subPath.length > 0) {
-            // Simplify path by removing very close points
-            const simplifiedPath = simplifyPath(subPath, tolerance);
-            if (simplifiedPath.length > 0) {
-              paths.push(simplifiedPath);
-            }
+            allPoints.push(...subPath);
+            paths.push(subPath);
           }
         }
       }
+    }
+
+    // Find actual min/max coordinates from all points
+    if (allPoints.length > 0) {
+      const xCoords = allPoints.map(p => p.x);
+      const yCoords = allPoints.map(p => p.y);
+      const actualMinX = Math.min(...xCoords);
+      const actualMinY = Math.min(...yCoords);
+      const actualMaxX = Math.max(...xCoords);
+      const actualMaxY = Math.max(...yCoords);
+      const actualWidth = actualMaxX - actualMinX;
+      const actualHeight = actualMaxY - actualMinY;
+
+      // Calculate scaling factor to fit CNC area while maintaining aspect ratio
+      const scaleX = CNC_WIDTH / actualWidth;
+      const scaleY = CNC_HEIGHT / actualHeight;
+      const scale = Math.min(scaleX, scaleY);
+
+      // Scale and translate all paths to fit within CNC bounds
+      const scaledPaths = [];
+      for (const path of paths) {
+        const scaledPath = path.map(point => ({
+          x: Math.min(Math.max(Math.round((point.x - actualMinX) * scale * 100) / 100, 0), CNC_WIDTH),
+          y: Math.min(Math.max(Math.round((point.y - actualMinY) * scale * 100) / 100, 0), CNC_HEIGHT)
+        }));
+        
+        // Simplify path by removing very close points
+        const simplifiedPath = simplifyPath(scaledPath, tolerance);
+        if (simplifiedPath.length > 0) {
+          scaledPaths.push(simplifiedPath);
+        }
+      }
+      
+      return scaledPaths;
     }
 
     return paths;

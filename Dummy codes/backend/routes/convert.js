@@ -76,50 +76,43 @@ router.post("/convert", upload.single("image"), async (req, res) => {
     // Read the uploaded file
     const imageBuffer = await fs.readFile(req.file.path);
 
-    // Step 1: Vectorize the image (bitmap -> SVG)
+    // Step 1: Vectorize the image
     console.log("Vectorizing image...");
     const { svg, processedImage } = await vectorizeImage(imageBuffer, {
       imageSize: options.imageSize,
       detailLevel: options.detailLevel,
     });
 
-    // Step 2: Convert SVG paths to coordinate arrays
+    // Step 2: Convert SVG to points
     console.log("Converting SVG to points...");
     const paths = svgToPoints(svg, options.tolerance);
 
     if (paths.length === 0) {
-      // Clean up uploaded file
       await fs.unlink(req.file.path).catch(console.error);
       return res.status(400).json({
-        error: "No paths found in image. Try an image with more contrast.",
+        error: "No paths found in image. Try adjusting settings or use a different image.",
       });
     }
 
-    // Filter out noise if enabled
+    // Step 3: Optional noise removal
     let filteredPaths = paths;
     if (options.removeNoise && options.minPathLength > 0) {
       filteredPaths = paths.filter((path) => {
         if (path.length < 2) return false;
-
-        // Calculate total path length
         let totalLength = 0;
         for (let i = 1; i < path.length; i++) {
           const dx = path[i].x - path[i - 1].x;
           const dy = path[i].y - path[i - 1].y;
           totalLength += Math.sqrt(dx * dx + dy * dy);
         }
-
         return totalLength >= options.minPathLength;
       });
-
       console.log(
-        `Filtered ${paths.length - filteredPaths.length} noise paths`
+        `Removed ${paths.length - filteredPaths.length} noise paths`
       );
     }
 
-    console.log(`Found ${filteredPaths.length} paths`);
-
-    // Step 3: Convert coordinate arrays to G-code
+    // Step 4: Convert paths to G-code
     console.log("Generating G-code...");
     const { gcode, stats } = pointsToGcode(filteredPaths, {
       feedRate: options.feedRate,
@@ -130,24 +123,19 @@ router.post("/convert", upload.single("image"), async (req, res) => {
     // Clean up uploaded file
     await fs.unlink(req.file.path).catch(console.error);
 
-    // Return G-code with metadata
+    // Return results
     res.json({
-      gcode: gcode,
-      processedImage: processedImage,
-      stats: stats,
-      options: options,
+      gcode,
+      stats,
+      processedImage,
     });
+
+    console.log("Processing complete!");
   } catch (error) {
     console.error("Error processing image:", error);
-
-    // Clean up uploaded file if it exists
-    if (req.file) {
-      await fs.unlink(req.file.path).catch(console.error);
-    }
-
     res.status(500).json({
       error: "Failed to process image",
-      details: error.message,
+      message: error.message,
     });
   }
 });

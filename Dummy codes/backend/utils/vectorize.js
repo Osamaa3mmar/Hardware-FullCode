@@ -16,6 +16,10 @@ export async function vectorizeImage(imageBuffer, options = {}) {
   const imageSize = options.imageSize || 300;
   const detailLevel = options.detailLevel || 2;
 
+  // CNC working area dimensions in mm (GRBL limits: X=60, Y=40)
+  const CNC_WIDTH = 60;
+  const CNC_HEIGHT = 40;
+
   // Map detail level to potrace settings
   const detailSettings = {
     1: { turdSize: 8, optTolerance: 0.6 }, // Low detail
