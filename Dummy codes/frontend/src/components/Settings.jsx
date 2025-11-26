@@ -5,7 +5,7 @@ function Settings({ onSettingsChange, isDisabled }) {
   const [settings, setSettings] = useState({
     imageSize: 300,
     detailLevel: 2,
-    feedRate: 3000,
+    feedRate: 2000,
     penUp: 5,
     penDown: -2,
     tolerance: 0.5,

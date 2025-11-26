@@ -9,7 +9,7 @@ const TextareaComponent = ({ fontSize, textColor }) => {
     const newValue = e.target.value;
     setText(newValue);
     setError("");
-    
+
     const textarea = textareaRef.current;
     if (textarea && textarea.scrollHeight > 500) {
       setError("Text exceeds maximum height.");
@@ -21,7 +21,7 @@ const TextareaComponent = ({ fontSize, textColor }) => {
     const pastedText = e.clipboardData.getData("text");
     const newValue = text + pastedText;
     setText(newValue);
-    
+
     const textarea = textareaRef.current;
     setTimeout(() => {
       if (textarea && textarea.scrollHeight > 500) {

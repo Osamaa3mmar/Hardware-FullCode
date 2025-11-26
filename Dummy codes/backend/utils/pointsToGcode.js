@@ -2,13 +2,13 @@
  * Converts coordinate arrays to G-code commands for a pen plotter
  * @param {Array<Array<{x: number, y: number}>>} paths - Array of paths, each containing coordinate points
  * @param {Object} options - G-code generation options
- * @param {number} options.feedRate - Feed rate in mm/min (default: 3000)
+ * @param {number} options.feedRate - Feed rate in mm/min (default: 2000)
  * @param {number} options.penUp - Z position for pen up (default: 5)
  * @param {number} options.penDown - Z position for pen down (default: -2)
  * @returns {Object} - Generated G-code text and statistics
  */
 export function pointsToGcode(paths, options = {}) {
-  const feedRate = options.feedRate || 3000;
+  const feedRate = options.feedRate || 2000;
   const penUp = options.penUp || 5;
   const penDown = options.penDown || -2;
 
@@ -27,7 +27,6 @@ export function pointsToGcode(paths, options = {}) {
   gcode.push("G21 ; Set units to millimeters");
   gcode.push("G90 ; Use absolute positioning");
   gcode.push(`G1 Z${penUp} F${feedRate} ; Pen up`);
-  gcode.push("G28 ; Home all axes");
   gcode.push("");
 
   let pathCount = 0;
@@ -91,7 +90,7 @@ export function pointsToGcode(paths, options = {}) {
   gcode.push(`; Drawing distance: ${drawingDistance.toFixed(2)} mm`);
   gcode.push(`; Movement distance: ${moveDistance.toFixed(2)} mm`);
   gcode.push(`G1 Z${penUp} ; Ensure pen is up`);
-  gcode.push("G28 X0 Y0 ; Return to home");
+  gcode.push("G0 X0 Y0 ; Return to origin");
   gcode.push("M2 ; End program");
 
   const gcodeText = gcode.join("\n");

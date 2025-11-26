@@ -9,9 +9,9 @@ const { parseSVG, makeAbsolute } = svgPathParser;
  */
 export function svgToPoints(svgString, tolerance = 0.5) {
   try {
-    // CNC working area dimensions in mm (GRBL limits: X=60, Y=40)
-    const CNC_WIDTH = 60;
-    const CNC_HEIGHT = 40;
+    // CNC working area dimensions in mm (GRBL limits: X=140, Y=140)
+    const CNC_WIDTH = 140;
+    const CNC_HEIGHT = 140;
 
     // Extract SVG viewBox to get original dimensions
     const viewBoxMatch = svgString.match(/viewBox="([^"]+)"/);
@@ -19,7 +19,7 @@ export function svgToPoints(svgString, tolerance = 0.5) {
     let svgHeight = 300;
     let minX = 0;
     let minY = 0;
-    
+
     if (viewBoxMatch) {
       const viewBox = viewBoxMatch[1].split(/\s+/);
       minX = parseFloat(viewBox[0]) || 0;
@@ -51,8 +51,8 @@ export function svgToPoints(svgString, tolerance = 0.5) {
 
     // Find actual min/max coordinates from all points
     if (allPoints.length > 0) {
-      const xCoords = allPoints.map(p => p.x);
-      const yCoords = allPoints.map(p => p.y);
+      const xCoords = allPoints.map((p) => p.x);
+      const yCoords = allPoints.map((p) => p.y);
       const actualMinX = Math.min(...xCoords);
       const actualMinY = Math.min(...yCoords);
       const actualMaxX = Math.max(...xCoords);
@@ -68,18 +68,24 @@ export function svgToPoints(svgString, tolerance = 0.5) {
       // Scale and translate all paths to fit within CNC bounds
       const scaledPaths = [];
       for (const path of paths) {
-        const scaledPath = path.map(point => ({
-          x: Math.min(Math.max(Math.round((point.x - actualMinX) * scale * 100) / 100, 0), CNC_WIDTH),
-          y: Math.min(Math.max(Math.round((point.y - actualMinY) * scale * 100) / 100, 0), CNC_HEIGHT)
+        const scaledPath = path.map((point) => ({
+          x: Math.min(
+            Math.max(Math.round((point.x - actualMinX) * scale * 100) / 100, 0),
+            CNC_WIDTH
+          ),
+          y: Math.min(
+            Math.max(Math.round((point.y - actualMinY) * scale * 100) / 100, 0),
+            CNC_HEIGHT
+          ),
         }));
-        
+
         // Simplify path by removing very close points
         const simplifiedPath = simplifyPath(scaledPath, tolerance);
         if (simplifiedPath.length > 0) {
           scaledPaths.push(simplifiedPath);
         }
       }
-      
+
       return scaledPaths;
     }
 

@@ -1,6 +1,7 @@
 import express from "express";
 import cors from "cors";
 import convertRoutes from "./routes/convert.js";
+import serialRoutes from "./routes/serial.js";
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -19,6 +20,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use("/api", convertRoutes);
+app.use("/api/serial", serialRoutes);
 
 // Root endpoint
 app.get("/", (req, res) => {
@@ -28,6 +30,9 @@ app.get("/", (req, res) => {
     endpoints: {
       convert: "POST /api/convert - Upload image and get G-code",
       health: "GET /api/health - Check API status",
+      serialSend: "POST /api/serial/send - Send G-code to Arduino",
+      serialPorts: "GET /api/serial/ports - List available serial ports",
+      serialStatus: "GET /api/serial/status - Get serial connection status",
     },
   });
 });

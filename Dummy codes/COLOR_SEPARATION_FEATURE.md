@@ -1,23 +1,27 @@
 # 🎨 Multi-Color Mode (Color Separation Feature)
 
 ## Overview
+
 The multi-color mode automatically detects colors in your image and separates them into different layers. Each layer will be drawn with a different pen, with automatic pause commands for pen changes.
 
 ## How It Works
 
 ### 1. Color Detection
+
 - The system analyzes your uploaded image pixel by pixel
 - Identifies up to 8 unique colors (excluding white background)
 - Colors are sorted by frequency (most common first)
 - Similar colors within a tolerance of 10 RGB units are grouped together
 
 ### 2. Layer Separation
+
 - Each detected color becomes a separate layer
 - A black & white version is created for each layer
 - Only pixels matching that specific color appear as black in the layer
 - All other pixels are white (background)
 
 ### 3. G-code Generation
+
 - Each layer is vectorized and converted to G-code independently
 - Layers are combined into a single G-code file with clear separation
 - **M0 pause commands** are inserted between layers for pen changes
@@ -26,11 +30,13 @@ The multi-color mode automatically detects colors in your image and separates th
 ## How to Use
 
 1. **Enable Multi-Color Mode**
+
    - Check the "🎨 Multi-Color Mode (Color Separation)" checkbox in Settings
    - Upload your colored image
    - Click "Generate G-code"
 
 2. **Review the Layers**
+
    - The ColorLayers panel will show:
      - Each detected color with a color swatch
      - Preview of what each layer looks like
@@ -38,6 +44,7 @@ The multi-color mode automatically detects colors in your image and separates th
      - Estimated drawing time per layer
 
 3. **Prepare Your Pens**
+
    - Note the order of colors (Layer 1, Layer 2, etc.)
    - Prepare pens/markers matching each color
    - Colors are listed with their hex codes (e.g., #FF0000 for red)
@@ -85,6 +92,7 @@ M0 ; Pause for pen change
 ## Color Naming
 
 The system provides approximate color names:
+
 - **Black** - Very dark colors (brightness < 50)
 - **Dark Gray** - Dark but not black
 - **Gray** - Medium gray tones
@@ -101,18 +109,21 @@ The system provides approximate color names:
 ## Tips for Best Results
 
 1. **Image Preparation**
+
    - Use images with distinct, solid colors
    - Avoid gradients or color blending
    - Reduce your image to key colors in an image editor first
    - Simple cartoon-style images work best
 
 2. **Pen Selection**
+
    - Use pens with consistent line width
    - Test pens on scrap paper first
    - Make sure each pen color matches the detected layers
    - Keep pens in order for quick swapping
 
 3. **Plotter Setup**
+
    - Ensure your plotter supports M0 (pause) commands
    - Test with a simple 2-color image first
    - Have all pens ready before starting
@@ -127,12 +138,14 @@ The system provides approximate color names:
 ## Technical Details
 
 ### Backend Processing
+
 - File: `backend/utils/colorSeparation.js`
 - Uses Sharp for raw pixel access and analysis
 - Creates binary (black/white) layers for each color
 - Returns color info, layer images, and pixel counts
 
 ### Frontend Display
+
 - Component: `frontend/src/components/ColorLayers.jsx`
 - Shows color swatches with hex codes
 - Displays layer previews
@@ -140,6 +153,7 @@ The system provides approximate color names:
 - Calculates total estimated time
 
 ### Statistics
+
 - **Layer Count**: Number of color layers detected
 - **Path Count**: Total paths across all layers
 - **Drawing Distance**: Combined distance for all layers
@@ -157,20 +171,24 @@ The system provides approximate color names:
 ## Troubleshooting
 
 **Too many layers detected:**
+
 - Pre-process your image to reduce colors
 - Use "posterize" or "reduce colors" in an image editor
 
 **Colors not separated correctly:**
+
 - Increase contrast in your source image
 - Convert image to indexed color mode with limited palette
 - Ensure colors are distinct (not similar shades)
 
 **Plotter doesn't pause:**
+
 - Check if your plotter firmware supports M0
 - Try M00 or M1 instead (edit G-code manually)
 - Some plotters may need custom pause commands
 
 **Layers appear empty:**
+
 - Color tolerance might be too strict
 - Try different image formats (PNG works best)
 - Ensure image has actual color variation

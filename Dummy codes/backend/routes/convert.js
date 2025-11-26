@@ -63,7 +63,7 @@ router.post("/convert", upload.single("image"), async (req, res) => {
     const options = {
       imageSize: parseInt(req.body.imageSize) || 300,
       detailLevel: parseInt(req.body.detailLevel) || 2,
-      feedRate: parseInt(req.body.feedRate) || 3000,
+      feedRate: parseInt(req.body.feedRate) || 2000,
       penUp: parseFloat(req.body.penUp) || 5,
       penDown: parseFloat(req.body.penDown) || -2,
       tolerance: parseFloat(req.body.tolerance) || 0.5,
@@ -90,7 +90,8 @@ router.post("/convert", upload.single("image"), async (req, res) => {
     if (paths.length === 0) {
       await fs.unlink(req.file.path).catch(console.error);
       return res.status(400).json({
-        error: "No paths found in image. Try adjusting settings or use a different image.",
+        error:
+          "No paths found in image. Try adjusting settings or use a different image.",
       });
     }
 
@@ -107,9 +108,7 @@ router.post("/convert", upload.single("image"), async (req, res) => {
         }
         return totalLength >= options.minPathLength;
       });
-      console.log(
-        `Removed ${paths.length - filteredPaths.length} noise paths`
-      );
+      console.log(`Removed ${paths.length - filteredPaths.length} noise paths`);
     }
 
     // Step 4: Convert paths to G-code
