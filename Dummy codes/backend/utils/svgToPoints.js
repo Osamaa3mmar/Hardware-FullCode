@@ -9,8 +9,8 @@ const { parseSVG, makeAbsolute } = svgPathParser;
  */
 export function svgToPoints(svgString, tolerance = 0.5) {
   try {
-    // CNC working area dimensions in mm (GRBL limits: X=140, Y=140)
-    const CNC_WIDTH = 140;
+    // CNC working area dimensions in mm (GRBL limits: X=120, Y=140)
+    const CNC_WIDTH = 120;
     const CNC_HEIGHT = 140;
 
     // Extract SVG viewBox to get original dimensions
@@ -243,10 +243,8 @@ function parsePathToPoints(pathData) {
           break;
 
         case "closepath":
-          // Close the path by returning to the first point
-          if (currentPath.length > 0) {
-            currentPath.push({ x: currentPath[0].x, y: currentPath[0].y });
-          }
+          // Don't add return point - pen will lift after path
+          // This prevents drawing the same line twice
           break;
 
         case "arc":

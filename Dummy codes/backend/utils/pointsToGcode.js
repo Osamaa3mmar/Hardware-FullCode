@@ -2,13 +2,13 @@
  * Converts coordinate arrays to G-code commands for a pen plotter
  * @param {Array<Array<{x: number, y: number}>>} paths - Array of paths, each containing coordinate points
  * @param {Object} options - G-code generation options
- * @param {number} options.feedRate - Feed rate in mm/min (default: 2000)
+ * @param {number} options.feedRate - Feed rate in mm/min (default: 1200)
  * @param {number} options.penUp - Z position for pen up (default: 5)
  * @param {number} options.penDown - Z position for pen down (default: -2)
  * @returns {Object} - Generated G-code text and statistics
  */
 export function pointsToGcode(paths, options = {}) {
-  const feedRate = options.feedRate || 2000;
+  const feedRate = options.feedRate || 1200;
   const penUp = options.penUp || 5;
   const penDown = options.penDown || -2;
 

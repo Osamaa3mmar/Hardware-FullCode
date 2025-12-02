@@ -3,6 +3,7 @@ import "./DrawButton.css";
 
 function DrawButton({ gcode, disabled }) {
   const [isDrawing, setIsDrawing] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [progress, setProgress] = useState(null);
   const [error, setError] = useState(null);
   const [logs, setLogs] = useState([]);
@@ -11,7 +12,8 @@ function DrawButton({ gcode, disabled }) {
     total: 0,
   });
   const logsEndRef = useRef(null);
-  const eventSourceRef = useRef(null);
+  const readerRef = useRef(null);
+  const abortControllerRef = useRef(null);
 
   // Auto-scroll to bottom when new logs arrive
   useEffect(() => {
@@ -25,22 +27,17 @@ function DrawButton({ gcode, disabled }) {
     }
 
     setIsDrawing(true);
+    setIsPaused(false);
     setError(null);
     setLogs([]);
     setCurrentProgress({ current: 0, total: 0 });
     setProgress("Connecting to Arduino...");
 
-    // Close any existing EventSource
-    if (eventSourceRef.current) {
-      eventSourceRef.current.close();
-    }
+    // Create abort controller for cancellation
+    abortControllerRef.current = new AbortController();
 
     try {
-      // Use EventSource for real-time updates
-      const url = new URL("http://localhost:5000/api/serial/send");
-
-      // We need to send POST data, so we'll use fetch with SSE
-      const response = await fetch(url, {
+      const response = await fetch("http://localhost:5000/api/serial/send", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -50,6 +47,7 @@ function DrawButton({ gcode, disabled }) {
           port: "COM4",
           baudRate: 115200,
         }),
+        signal: abortControllerRef.current.signal,
       });
 
       if (!response.ok) {
@@ -57,6 +55,7 @@ function DrawButton({ gcode, disabled }) {
       }
 
       const reader = response.body.getReader();
+      readerRef.current = reader;
       const decoder = new TextDecoder();
       let buffer = "";
 
@@ -64,6 +63,11 @@ function DrawButton({ gcode, disabled }) {
       const readStream = async () => {
         try {
           while (true) {
+            // Check if paused
+            while (isPaused && isDrawing) {
+              await new Promise((resolve) => setTimeout(resolve, 100));
+            }
+
             const { done, value } = await reader.read();
 
             if (done) {
@@ -82,18 +86,56 @@ function DrawButton({ gcode, disabled }) {
             }
           }
         } catch (err) {
-          console.error("Stream error:", err);
-          setError(err.message);
+          if (err.name === "AbortError") {
+            addLog(Date.now(), "Drawing cancelled by user", "error");
+            setProgress("❌ Drawing cancelled");
+          } else {
+            console.error("Stream error:", err);
+            setError(err.message);
+          }
           setIsDrawing(false);
         }
       };
 
       readStream();
     } catch (err) {
-      setError(err.message);
-      setProgress(null);
+      if (err.name === "AbortError") {
+        setProgress("❌ Drawing cancelled");
+      } else {
+        setError(err.message);
+        setProgress(null);
+      }
       setIsDrawing(false);
     }
+  };
+
+  const handlePauseResume = () => {
+    setIsPaused(!isPaused);
+    if (!isPaused) {
+      setProgress("⏸️ Paused - Click Resume to continue");
+      addLog(Date.now(), "Drawing paused", "status");
+    } else {
+      setProgress("▶️ Resuming...");
+      addLog(Date.now(), "Drawing resumed", "status");
+    }
+  };
+
+  const handleCancel = async () => {
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort();
+    }
+    if (readerRef.current) {
+      try {
+        await readerRef.current.cancel();
+      } catch (e) {
+        console.error("Error cancelling reader:", e);
+      }
+    }
+
+    setIsDrawing(false);
+    setIsPaused(false);
+    setProgress("❌ Drawing cancelled");
+    addLog(Date.now(), "Drawing cancelled by user", "error");
   };
 
   const processSSEMessage = (message) => {
@@ -166,14 +208,6 @@ function DrawButton({ gcode, disabled }) {
 
   return (
     <div className="draw-button-container">
-      <button
-        className="draw-button"
-        onClick={handleDraw}
-        disabled={disabled || isDrawing || !gcode}
-      >
-        {isDrawing ? "🔄 Drawing..." : "🖊️ Draw on CNC"}
-      </button>
-
       {isDrawing && currentProgress.total > 0 && (
         <div className="progress-bar-container">
           <div
@@ -186,23 +220,10 @@ function DrawButton({ gcode, disabled }) {
           />
           <span className="progress-text">
             {currentProgress.current}/{currentProgress.total} lines
+            {isPaused && " (PAUSED)"}
           </span>
         </div>
       )}
-
-      {progress && (
-        <div className="draw-progress">
-          <p className="progress-message">{progress}</p>
-        </div>
-      )}
-
-      {error && (
-        <div className="draw-error">
-          <p>❌ Error: {error}</p>
-          <small>Make sure Arduino is connected to COM4</small>
-        </div>
-      )}
-
       {logs.length > 0 && (
         <div className="draw-logs">
           <h4>Arduino Response Log (Real-time):</h4>
@@ -219,6 +240,39 @@ function DrawButton({ gcode, disabled }) {
           </div>
         </div>
       )}
+
+      {progress && (
+        <div className="draw-progress">
+          <p className="progress-message">{progress}</p>
+        </div>
+      )}
+
+      {error && (
+        <div className="draw-error">
+          <p>❌ Error: {error}</p>
+          <small>Make sure Arduino is connected to COM4</small>
+        </div>
+      )}
+      <div className="button-group">
+        <button
+          className="draw-button"
+          onClick={handleDraw}
+          disabled={disabled || isDrawing || !gcode}
+        >
+          {isDrawing ? "🔄 Drawing..." : "🖊️ Draw on CNC"}
+        </button>
+
+        {isDrawing && (
+          <>
+            <button className="pause-button" onClick={handlePauseResume}>
+              {isPaused ? "▶️ Resume" : "⏸️ Pause"}
+            </button>
+            <button className="cancel-button" onClick={handleCancel}>
+              ❌ Cancel
+            </button>
+          </>
+        )}
+      </div>
     </div>
   );
 }

@@ -16,7 +16,7 @@ function App() {
   const [settings, setSettings] = useState({
     imageSize: 300,
     detailLevel: 2,
-    feedRate: 2000,
+    feedRate: 1200,
     penUp: 5,
     penDown: -2,
     tolerance: 0.5,
@@ -66,8 +66,8 @@ function App() {
         {stats && <StatsPanel stats={stats} processedImage={processedImage} />}
 
         {gcode && <DrawButton gcode={gcode} disabled={isLoading} />}
-
         {gcode && <GcodeViewer gcode={gcode} />}
+
 
         {!gcode && !error && !isLoading && (
           <div className="instructions">
