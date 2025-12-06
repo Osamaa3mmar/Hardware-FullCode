@@ -2,23 +2,17 @@ import sharp from "sharp";
 import potrace from "potrace";
 import { promisify } from "util";
 
-const potraceTrace = promisify(potrace.trace);
+const trace = promisify(potrace.trace);
 
 /**
- * Converts an image to a black-and-white bitmap and vectorizes it using Potrace
- * @param {Buffer} imageBuffer - The uploaded image buffer
- * @param {Object} options - Processing options
- * @param {number} options.imageSize - Target width in pixels (default: 300)
- * @param {number} options.detailLevel - Detail level 1-3 (default: 2)
- * @returns {Promise<{svg: string, processedImage: string}>} - SVG and base64 processed image
+ * Convert an image to SVG using vectorization
+ * @param {string} imagePath - Path to the input image
+ * @param {object} options - Processing options
+ * @returns {Promise<{svg: string, processedImage: string}>}
  */
-export async function vectorizeImage(imageBuffer, options = {}) {
+export async function vectorizeImage(imagePath, options = {}) {
   const imageSize = options.imageSize || 300;
   const detailLevel = options.detailLevel || 2;
-
-  // CNC working area dimensions in mm (GRBL limits: X=95, Y=130)
-  const CNC_WIDTH = 95;
-  const CNC_HEIGHT = 130;
 
   // Map detail level to potrace settings
   const detailSettings = {
@@ -31,7 +25,7 @@ export async function vectorizeImage(imageBuffer, options = {}) {
 
   try {
     // Step 1: Process image with Sharp
-    const processedBuffer = await sharp(imageBuffer)
+    const processedBuffer = await sharp(imagePath)
       .resize(imageSize, null, {
         fit: "inside",
         withoutEnlargement: false,
@@ -47,7 +41,7 @@ export async function vectorizeImage(imageBuffer, options = {}) {
     )}`;
 
     // Step 2: Vectorize with Potrace
-    const svg = await potraceTrace(processedBuffer, {
+    const svg = await trace(processedBuffer, {
       turnPolicy: potrace.Potrace.TURNPOLICY_MINORITY,
       turdSize: settings.turdSize,
       optCurve: true,
@@ -59,9 +53,12 @@ export async function vectorizeImage(imageBuffer, options = {}) {
       background: "transparent",
     });
 
-    return { svg, processedImage: processedImageBase64 };
+    return {
+      svg: svg,
+      processedImage: processedImageBase64,
+    };
   } catch (error) {
-    console.error("Error in vectorizeImage:", error);
+    console.error("Vectorization error:", error);
     throw new Error(`Failed to vectorize image: ${error.message}`);
   }
 }

@@ -16,7 +16,7 @@ function App() {
   const [settings, setSettings] = useState({
     imageSize: 300,
     detailLevel: 2,
-    feedRate: 1200,
+    feedRate: 1500,
     penUp: 5,
     penDown: -2,
     tolerance: 0.5,

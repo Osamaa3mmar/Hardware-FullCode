@@ -1,13 +1,15 @@
-import svgPathParser from "svg-path-parser";
-const { parseSVG, makeAbsolute } = svgPathParser;
+import pkg from "svg-path-parser";
+const { parseSVG, makeAbsolute } = pkg;
 
 /**
  * Extracts path data from SVG and converts to coordinate arrays
  * @param {string} svgString - The SVG string from Potrace
- * @param {number} tolerance - Simplification tolerance (default: 0.5)
+ * @param {object} options - Options
  * @returns {Array<Array<{x: number, y: number}>>} - Array of paths, each path is an array of points
  */
-export function svgToPoints(svgString, tolerance = 0.5) {
+export function svgToPoints(svgString, options = {}) {
+  const tolerance = options.tolerance || 0.5;
+  
   try {
     // CNC working area dimensions in mm (GRBL limits: X=95, Y=130)
     const CNC_WIDTH = 95;
@@ -98,9 +100,6 @@ export function svgToPoints(svgString, tolerance = 0.5) {
 
 /**
  * Simplify path by removing points that are very close to each other
- * @param {Array<{x: number, y: number}>} path - Array of points
- * @param {number} tolerance - Minimum distance between points in mm
- * @returns {Array<{x: number, y: number}>} - Simplified path
  */
 function simplifyPath(path, tolerance = 0.5) {
   if (path.length <= 2) return path;
@@ -130,8 +129,6 @@ function simplifyPath(path, tolerance = 0.5) {
 
 /**
  * Parses a single SVG path string into multiple sub-paths (split on moveto)
- * @param {string} pathData - The 'd' attribute value from an SVG path
- * @returns {Array<Array<{x: number, y: number}>>} - Array of sub-paths, each containing coordinate points
  */
 function parsePathToPoints(pathData) {
   const allPaths = [];
@@ -185,7 +182,7 @@ function parsePathToPoints(pathData) {
             cmd.y2,
             cmd.x,
             cmd.y,
-            8 // Sample 8 points - reduced for smaller G-code
+            8 // Sample 8 points
           );
           currentPath.push(...cubicPoints);
           currentX = cmd.x;
@@ -219,7 +216,7 @@ function parsePathToPoints(pathData) {
             cmd.y1,
             cmd.x,
             cmd.y,
-            6 // Sample 6 points - reduced for smaller G-code
+            6 // Sample 6 points
           );
           currentPath.push(...quadPoints);
           currentX = cmd.x;
@@ -244,7 +241,6 @@ function parsePathToPoints(pathData) {
 
         case "closepath":
           // Don't add return point - pen will lift after path
-          // This prevents drawing the same line twice
           break;
 
         case "arc":
@@ -328,7 +324,6 @@ function sampleQuadraticBezier(x0, y0, x1, y1, x2, y2, numPoints) {
 
 /**
  * Sample points along an arc
- * Simplified arc approximation using line segments
  */
 function sampleArc(x0, y0, rx, ry, rotation, largeArc, sweep, x, y, numPoints) {
   const points = [];

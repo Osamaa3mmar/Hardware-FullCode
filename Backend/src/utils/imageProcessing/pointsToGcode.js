@@ -1,10 +1,7 @@
 /**
  * Converts coordinate arrays to G-code commands for a pen plotter
- * @param {Array<Array<{x: number, y: number}>>} paths - Array of paths, each containing coordinate points
+ * @param {Array<Array<{x: number, y: number}>>} paths - Array of paths
  * @param {Object} options - G-code generation options
- * @param {number} options.feedRate - Feed rate in mm/min (default: 1500)
- * @param {number} options.penUp - Z position for pen up (default: 5)
- * @param {number} options.penDown - Z position for pen down (default: -2)
  * @returns {Object} - Generated G-code text and statistics
  */
 export function pointsToGcode(paths, options = {}) {
@@ -112,59 +109,4 @@ export function pointsToGcode(paths, options = {}) {
       lineCount: gcode.length,
     },
   };
-}
-
-/**
- * Optimizes G-code by removing redundant commands and optimizing path order
- * @param {string} gcode - Raw G-code string
- * @returns {string} - Optimized G-code
- */
-export function optimizeGcode(gcode) {
-  const lines = gcode.split("\n");
-  const optimized = [];
-  let lastCommand = "";
-  let lastZ = null;
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-
-    // Skip empty lines in the middle (keep them for readability at section breaks)
-    if (trimmed === "" && lastCommand !== "") {
-      optimized.push(line);
-      lastCommand = "";
-      continue;
-    }
-
-    // Keep comments
-    if (trimmed.startsWith(";")) {
-      optimized.push(line);
-      continue;
-    }
-
-    // Extract the command part (before any comment)
-    const commandPart = trimmed.split(";")[0].trim();
-
-    // Track Z movements separately - never remove pen up/down commands
-    if (commandPart.includes(" Z")) {
-      const zMatch = commandPart.match(/Z(-?\d+\.?\d*)/);
-      if (zMatch) {
-        const currentZ = zMatch[1];
-        // Only skip if it's the exact same Z command consecutively
-        if (currentZ !== lastZ || !commandPart.startsWith("G1 Z")) {
-          optimized.push(line);
-          lastZ = currentZ;
-        }
-        lastCommand = commandPart;
-        continue;
-      }
-    }
-
-    // Remove duplicate consecutive XY movement commands only
-    if (commandPart !== lastCommand) {
-      optimized.push(line);
-      lastCommand = commandPart;
-    }
-  }
-
-  return optimized.join("\n");
 }
