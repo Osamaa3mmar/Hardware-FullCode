@@ -4,8 +4,9 @@ import { ReadlineParser } from "@serialport/parser-readline";
 
 const router = express.Router();
 
-let serialPort = null;
+let activePort = null;
 let parser = null;
+let isConnected = false;
 
 /**
  * POST /api/serial/send
@@ -23,115 +24,157 @@ router.post("/send", async (req, res) => {
   res.setHeader("Cache-Control", "no-cache");
   res.setHeader("Connection", "keep-alive");
 
+  const sendEvent = (event, data) => {
+    res.write(`event: ${event}\n`);
+    res.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
   try {
-    // Open serial port
-    serialPort = new SerialPort({
+    // Close existing connection if any
+    if (activePort && activePort.isOpen) {
+      activePort.close();
+      activePort = null;
+      parser = null;
+      isConnected = false;
+    }
+
+    // Create new serial port connection
+    activePort = new SerialPort({
       path: port,
       baudRate: baudRate,
       dataBits: 8,
       parity: "none",
       stopBits: 1,
+      flowControl: false,
     });
 
-    parser = serialPort.pipe(new ReadlineParser({ delimiter: "\n" }));
+    parser = activePort.pipe(new ReadlineParser({ delimiter: "\r\n" }));
 
-    // Send connection status
-    res.write(
-      `event: status\ndata: ${JSON.stringify({
+    const startTime = Date.now();
+
+    // Setup event listeners
+    activePort.on("open", () => {
+      console.log(`Serial port ${port} opened successfully`);
+      isConnected = true;
+      sendEvent("status", {
         message: "Connected to Arduino",
-        timestamp: Date.now(),
-      })}\n\n`
-    );
+        timestamp: Date.now() - startTime,
+      });
 
-    // Wait for Arduino to initialize
-    await new Promise((resolve) => setTimeout(resolve, 2000));
-
-    const lines = gcode.split("\n").filter((line) => {
-      const trimmed = line.trim();
-      return trimmed && !trimmed.startsWith(";");
+      // Wait for Arduino to initialize
+      setTimeout(() => {
+        sendEvent("status", {
+          message: "Starting to send G-code...",
+          timestamp: Date.now() - startTime,
+        });
+        sendGcodeLinesSSE(gcode, activePort, parser, startTime, res, sendEvent);
+      }, 2000);
     });
 
-    let currentLine = 0;
-
-    // Send G-code line by line
-    for (const line of lines) {
-      await sendLine(line, parser, serialPort);
-      currentLine++;
-
-      // Send progress update
-      res.write(
-        `event: progress\ndata: ${JSON.stringify({
-          current: currentLine,
-          total: lines.length,
-          line: line.trim(),
-          timestamp: Date.now(),
-        })}\n\n`
-      );
-    }
-
-    // Send completion event
-    res.write(
-      `event: complete\ndata: ${JSON.stringify({
-        totalLines: lines.length,
-        message: "G-code sent successfully",
-        timestamp: Date.now(),
-      })}\n\n`
-    );
-
-    // Close the connection
-    if (serialPort && serialPort.isOpen) {
-      serialPort.close();
-    }
-    res.end();
+    activePort.on("error", (err) => {
+      console.error("Serial port error:", err);
+      isConnected = false;
+      sendEvent("error", {
+        message: err.message,
+        timestamp: Date.now() - startTime,
+      });
+      res.end();
+    });
   } catch (error) {
-    console.error("Serial communication error:", error);
-
-    res.write(
-      `event: error\ndata: ${JSON.stringify({
-        message: error.message,
-        timestamp: Date.now(),
-      })}\n\n`
-    );
-
-    if (serialPort && serialPort.isOpen) {
-      serialPort.close();
-    }
+    console.error("Error opening serial port:", error);
+    sendEvent("error", { message: error.message, timestamp: 0 });
     res.end();
   }
 });
 
 /**
- * Send a single line of G-code and wait for "ok" response
- * @param {string} line - G-code line
- * @param {ReadlineParser} parser - Serial parser
- * @param {SerialPort} port - Serial port
- * @returns {Promise}
+ * Send G-code lines one by one with SSE updates
  */
-function sendLine(line, parser, port) {
-  return new Promise((resolve, reject) => {
-    const timeout = setTimeout(() => {
-      reject(new Error("Timeout waiting for Arduino response"));
-    }, 5000);
+function sendGcodeLinesSSE(gcode, port, parser, startTime, res, sendEvent) {
+  const lines = gcode
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => line && !line.startsWith(";"));
 
-    const onData = (data) => {
-      const response = data.toString().trim().toLowerCase();
-      if (response.includes("ok") || response.includes("done")) {
-        clearTimeout(timeout);
-        parser.removeListener("data", onData);
-        resolve();
-      }
-    };
+  let currentLine = 0;
+  let waitingForResponse = false;
 
-    parser.on("data", onData);
+  parser.on("data", (data) => {
+    const response = data.trim();
+    console.log(`Arduino: ${response}`);
 
-    port.write(line + "\n", (err) => {
-      if (err) {
-        clearTimeout(timeout);
-        parser.removeListener("data", onData);
-        reject(err);
-      }
+    // Send real-time log to frontend
+    sendEvent("log", {
+      timestamp: Date.now() - startTime,
+      message: response,
+      line: currentLine,
     });
+
+    // Arduino is ready for next command
+    if (
+      response.toLowerCase().includes("ok") ||
+      response.toLowerCase().includes("done")
+    ) {
+      waitingForResponse = false;
+      sendNextLine();
+    }
   });
+
+  function sendNextLine() {
+    if (currentLine >= lines.length) {
+      // All lines sent
+      const endTime = Date.now();
+      const totalTime = ((endTime - startTime) / 1000).toFixed(2);
+
+      console.log(`G-code transmission complete in ${totalTime} seconds`);
+
+      sendEvent("complete", {
+        totalLines: lines.length,
+        totalTime: totalTime + " seconds",
+        timestamp: endTime - startTime,
+      });
+
+      // Close port after completion
+      setTimeout(() => {
+        if (port && port.isOpen) {
+          port.close();
+        }
+        res.end();
+      }, 1000);
+
+      return;
+    }
+
+    if (!waitingForResponse) {
+      const line = lines[currentLine];
+      console.log(`Sending [${currentLine + 1}/${lines.length}]: ${line}`);
+
+      // Send progress update
+      sendEvent("progress", {
+        current: currentLine + 1,
+        total: lines.length,
+        line: line,
+        timestamp: Date.now() - startTime,
+      });
+
+      port.write(line + "\n", (err) => {
+        if (err) {
+          console.error("Error writing to serial port:", err);
+          sendEvent("error", {
+            message: err.message,
+            timestamp: Date.now() - startTime,
+          });
+          res.end();
+        }
+      });
+
+      waitingForResponse = true;
+      currentLine++;
+    }
+  }
+
+  // Start sending
+  sendNextLine();
 }
 
 /**
@@ -141,10 +184,21 @@ function sendLine(line, parser, port) {
 router.get("/ports", async (req, res) => {
   try {
     const ports = await SerialPort.list();
-    res.json({ ports });
+    res.json({
+      success: true,
+      ports: ports.map((port) => ({
+        path: port.path,
+        manufacturer: port.manufacturer,
+        serialNumber: port.serialNumber,
+        pnpId: port.pnpId,
+        vendorId: port.vendorId,
+        productId: port.productId,
+      })),
+    });
   } catch (error) {
     console.error("Error listing serial ports:", error);
     res.status(500).json({
+      success: false,
       error: "Failed to list serial ports",
       message: error.message,
     });
@@ -153,13 +207,14 @@ router.get("/ports", async (req, res) => {
 
 /**
  * GET /api/serial/status
- * Check serial connection status
+ * Get current serial connection status
  */
 router.get("/status", (req, res) => {
   res.json({
-    connected: serialPort !== null,
-    port: serialPort?.path || null,
-    isOpen: serialPort?.isOpen || false,
+    success: true,
+    connected: isConnected,
+    port: activePort ? activePort.path : null,
+    isOpen: activePort ? activePort.isOpen : false,
   });
 });
 

@@ -46,7 +46,7 @@ const ImagePage = () => {
     }
     setIsGenerating(true);
     const toastId = toast.loading("Converting image to G-code...");
-    
+
     try {
       const data = await convertImageToGcode(selectedImage, settings);
       setResult(data);
@@ -165,6 +165,7 @@ const ImagePage = () => {
         gcode={result?.gcode}
         stats={result?.stats}
         processedImage={result?.processedImage}
+        settings={settings}
       />
     </div>
   );

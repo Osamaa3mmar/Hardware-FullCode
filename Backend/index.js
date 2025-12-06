@@ -3,6 +3,8 @@ import { createServer } from "http";
 import { Server } from "socket.io";
 import cors from "cors";
 import initControllers from "./src/init/controllers.js";
+import { loadQueue } from "./src/services/queuePersistence.js";
+import { nexaboard } from "./Data.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -17,8 +19,23 @@ const PORT = 3000;
 
 // Middleware
 app.use(cors());
-app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: "50mb" })); // Increase limit for base64 images
+app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+
+// Make io available to controllers
+app.set("io", io);
+
+// Initialize queue from persistent storage
+async function initializeQueue() {
+  try {
+    const items = await loadQueue();
+    nexaboard.queue.clear();
+    items.forEach((item) => nexaboard.queue.enqueue(item));
+    console.log(`Queue initialized with ${items.length} items`);
+  } catch (error) {
+    console.error("Failed to initialize queue:", error);
+  }
+}
 
 // Initialize controllers
 initControllers(app);
@@ -38,6 +55,9 @@ io.on("connection", (socket) => {
 });
 
 // Start server
-httpServer.listen(PORT, () => {
+httpServer.listen(PORT, async () => {
   console.log(`Server is running on http://localhost:${PORT}`);
+
+  // Initialize queue after server starts
+  await initializeQueue();
 });

@@ -1,0 +1,145 @@
+const API_BASE_URL = "http://localhost:3000/api/queue";
+
+/**
+ * Get all queue items
+ */
+export async function getQueue() {
+  const response = await fetch(API_BASE_URL);
+  if (!response.ok) {
+    throw new Error("Failed to fetch queue");
+  }
+  return response.json();
+}
+
+/**
+ * Add item to queue
+ * @param {Object} item - { image, gcode, stats, settings, processedImage, type }
+ */
+export async function addToQueue(item) {
+  const response = await fetch(`${API_BASE_URL}/add`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(item),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to add to queue");
+  }
+
+  return response.json();
+}
+
+/**
+ * Remove item from queue
+ * @param {string} id - Item ID
+ */
+export async function removeFromQueue(id) {
+  const response = await fetch(`${API_BASE_URL}/${id}`, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to remove from queue");
+  }
+
+  return response.json();
+}
+
+/**
+ * Reorder queue items
+ * @param {number} fromIndex - Source index
+ * @param {number} toIndex - Destination index
+ */
+export async function reorderQueue(fromIndex, toIndex) {
+  const response = await fetch(`${API_BASE_URL}/reorder`, {
+    method: "PUT",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ fromIndex, toIndex }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to reorder queue");
+  }
+
+  return response.json();
+}
+
+/**
+ * Clear entire queue
+ */
+export async function clearQueue() {
+  const response = await fetch(API_BASE_URL, {
+    method: "DELETE",
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to clear queue");
+  }
+
+  return response.json();
+}
+
+/**
+ * Get queue status
+ */
+export async function getQueueStatus() {
+  const response = await fetch(`${API_BASE_URL}/status`);
+
+  if (!response.ok) {
+    throw new Error("Failed to get queue status");
+  }
+
+  return response.json();
+}
+
+/**
+ * Start processing queue
+ * @param {string} port - Serial port (default: COM4)
+ * @param {number} baudRate - Baud rate (default: 115200)
+ */
+export async function processQueue(port = "COM4", baudRate = 115200) {
+  const response = await fetch(`${API_BASE_URL}/process`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ port, baudRate }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to start queue processing");
+  }
+
+  return response.json();
+}
+
+/**
+ * Process only the next (first pending) item in queue
+ * @param {string} port - Serial port (default: COM4)
+ * @param {number} baudRate - Baud rate (default: 115200)
+ */
+export async function processNextInQueue(port = "COM4", baudRate = 115200) {
+  const response = await fetch(`${API_BASE_URL}/process-next`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ port, baudRate }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to process next item");
+  }
+
+  return response.json();
+}

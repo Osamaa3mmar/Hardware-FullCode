@@ -17,7 +17,7 @@ import SidebarButton from "./SidebarButton";
 
 const Sidebar = ({ onNavigate, currentPage }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [theme, setTheme] = useState("dark");
+  const [theme, setTheme] = useState("light");
 
   useEffect(() => {
     document.documentElement.setAttribute("data-theme", theme);

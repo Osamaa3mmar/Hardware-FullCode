@@ -1,8 +1,11 @@
+import { useState } from "react";
 import { X, Copy, Download } from "lucide-react";
 import { toast } from "sonner";
 import AddToQueueButton from "../AddToQueueButton";
 import DrawNowButton from "../DrawNowButton";
 import StatsDisplay from "./StatsDisplay";
+import { addToQueue } from "../../api/queueApi";
+import SerialLogModal from "../SerialLogModal";
 
 const GcodePreviewModal = ({
   isOpen,
@@ -10,7 +13,10 @@ const GcodePreviewModal = ({
   gcode,
   stats,
   processedImage,
+  settings,
 }) => {
+  const [isSerialLogOpen, setIsSerialLogOpen] = useState(false);
+
   if (!isOpen) return null;
 
   const handleCopy = () => {
@@ -29,6 +35,29 @@ const GcodePreviewModal = ({
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
     toast.success("G-code downloaded!");
+  };
+
+  const handleAddToQueue = async () => {
+    try {
+      const queueItem = {
+        type: "image",
+        gcode,
+        stats,
+        processedImage,
+        settings,
+        image: null,
+      };
+
+      await addToQueue(queueItem);
+      toast.success("Added to queue successfully!");
+    } catch (error) {
+      console.error("Error adding to queue:", error);
+      toast.error(`Failed to add to queue: ${error.message}`);
+    }
+  };
+
+  const handleDrawNow = () => {
+    setIsSerialLogOpen(true);
   };
 
   return (
@@ -104,16 +133,22 @@ const GcodePreviewModal = ({
             <button onClick={onClose} className="btn btn-ghost">
               Close
             </button>
-            <AddToQueueButton
-              onClick={() => toast.success("Added to queue!")}
-            />
-            <DrawNowButton onClick={() => toast.success("Drawing started!")} />
+            <AddToQueueButton onClick={handleAddToQueue} />
+            <DrawNowButton onClick={handleDrawNow} />
           </div>
         </div>
       </div>
 
       {/* Backdrop */}
       <div className="modal-backdrop" onClick={onClose}></div>
+
+      {/* Serial Log Modal */}
+      <SerialLogModal
+        isOpen={isSerialLogOpen}
+        onClose={() => setIsSerialLogOpen(false)}
+        gcode={gcode}
+        port="COM4"
+      />
     </div>
   );
 };
