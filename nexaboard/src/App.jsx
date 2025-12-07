@@ -12,6 +12,8 @@ export default function App() {
   const [currentPage, setCurrentPage] = useState("dashboard");
 
   return (
+    
+
     <div className="flex h-screen">
       <Sidebar onNavigate={setCurrentPage} currentPage={currentPage} />
       <div className="flex-1">
