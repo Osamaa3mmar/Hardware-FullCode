@@ -143,3 +143,26 @@ export async function processNextInQueue(port = "COM4", baudRate = 115200) {
 
   return response.json();
 }
+
+/**
+ * Send a single command to Arduino
+ * @param {string} command - Command to send (e.g., "M3 S3000")
+ * @param {string} port - Serial port (default: COM4)
+ * @param {number} baudRate - Baud rate (default: 115200)
+ */
+export async function sendCommand(command, port = "COM4", baudRate = 115200) {
+  const response = await fetch("http://localhost:3000/api/serial/command", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ command, port, baudRate }),
+  });
+
+  if (!response.ok) {
+    const error = await response.json();
+    throw new Error(error.error || "Failed to send command");
+  }
+
+  return response.json();
+}

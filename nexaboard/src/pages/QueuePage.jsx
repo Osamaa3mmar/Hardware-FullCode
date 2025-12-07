@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Package, AlertCircle } from "lucide-react";
+import { Package, AlertCircle, PenTool } from "lucide-react";
 import { toast } from "sonner";
 import { io } from "socket.io-client";
 import QueueList from "../components/queue/QueueList";
@@ -12,6 +12,7 @@ import {
   clearQueue,
   processQueue,
   processNextInQueue,
+  sendCommand,
 } from "../api/queueApi";
 
 const QueuePage = () => {
@@ -101,6 +102,18 @@ const QueuePage = () => {
 
       if (data.status === "completed") {
         toast.success("Queue item completed successfully!");
+
+        // Auto-remove completed item from queue
+        if (data.id) {
+          setTimeout(async () => {
+            try {
+              await removeFromQueue(data.id);
+              console.log("Completed item removed from queue");
+            } catch (error) {
+              console.error("Error removing completed item:", error);
+            }
+          }, 1000);
+        }
       } else if (data.status === "failed") {
         toast.error(`Queue item failed: ${data.error}`);
       }
@@ -185,6 +198,28 @@ const QueuePage = () => {
     }
   };
 
+  // Handle open pen
+  const handleOpenPen = async () => {
+    try {
+      await sendCommand("M3 S3000");
+      toast.success("Pen opened (M3 S3000)");
+    } catch (error) {
+      console.error("Error opening pen:", error);
+      toast.error("Failed to open pen");
+    }
+  };
+
+  // Handle close pen
+  const handleClosePen = async () => {
+    try {
+      await sendCommand("M3 S0");
+      toast.success("Pen closed (M3 S0)");
+    } catch (error) {
+      console.error("Error closing pen:", error);
+      toast.error("Failed to close pen");
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="w-full h-full p-8 overflow-auto bg-base-100">
@@ -215,6 +250,27 @@ const QueuePage = () => {
           onClear={handleClear}
           isProcessing={isProcessing}
         />
+
+        {/* Pen Controls */}
+        <div className="bg-base-200 rounded-2xl p-6 shadow-xl border border-base-300">
+          <div className="flex items-center gap-3 mb-4 pb-3 border-b-2 border-primary/20">
+            <div className="w-1 h-6 bg-primary rounded-full"></div>
+            <h3 className="text-xl font-bold flex items-center gap-2">
+              <PenTool className="w-5 h-5" />
+              Pen Controls
+            </h3>
+          </div>
+          <div className="flex gap-4">
+            <button onClick={handleOpenPen} className="btn btn-success gap-2">
+              <PenTool className="w-4 h-4" />
+              Open Pen (M3 S3000)
+            </button>
+            <button onClick={handleClosePen} className="btn btn-error gap-2">
+              <PenTool className="w-4 h-4" />
+              Close Pen (M3 S0)
+            </button>
+          </div>
+        </div>
 
         {/* Queue List */}
         <div className="bg-base-200 rounded-2xl p-6 shadow-xl border border-base-300">
