@@ -218,4 +218,62 @@ router.get("/status", (req, res) => {
   });
 });
 
+/**
+ * POST /api/serial/command
+ * Send a single command to Arduino
+ */
+router.post("/command", async (req, res) => {
+  try {
+    const { command, port = "COM4", baudRate = 115200 } = req.body;
+
+    if (!command) {
+      return res.status(400).json({
+        success: false,
+        error: "Command is required",
+      });
+    }
+
+    // Create temporary serial connection
+    const serialPort = new SerialPort({
+      path: port,
+      baudRate: baudRate,
+    });
+
+    const parser = serialPort.pipe(new ReadlineParser({ delimiter: "\n" }));
+
+    // Wait for port to open
+    await new Promise((resolve, reject) => {
+      serialPort.on("open", resolve);
+      serialPort.on("error", reject);
+    });
+
+    console.log(`Sending command to ${port}: ${command}`);
+
+    // Send command
+    await new Promise((resolve, reject) => {
+      serialPort.write(command + "\n", (err) => {
+        if (err) reject(err);
+        else resolve();
+      });
+    });
+
+    // Wait a bit for response
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // Close port
+    serialPort.close();
+
+    res.json({
+      success: true,
+      message: `Command sent: ${command}`,
+    });
+  } catch (error) {
+    console.error("Error sending command:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message || "Failed to send command",
+    });
+  }
+});
+
 export default router;
