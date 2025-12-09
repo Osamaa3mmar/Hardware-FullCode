@@ -158,7 +158,7 @@ export async function sendCommand(command, port = "COM4", baudRate = 115200) {
     },
     body: JSON.stringify({ command, port, baudRate }),
   });
-
+  console.log(response.ok,"here");
   if (!response.ok) {
     const error = await response.json();
     throw new Error(error.error || "Failed to send command");

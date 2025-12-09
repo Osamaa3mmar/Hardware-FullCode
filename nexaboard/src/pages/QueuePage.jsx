@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Package, AlertCircle, PenTool } from "lucide-react";
+import { Package, AlertCircle, PenTool, FileCode } from "lucide-react";
 import { toast } from "sonner";
 import { io } from "socket.io-client";
 import QueueList from "../components/queue/QueueList";
@@ -23,6 +23,8 @@ const QueuePage = () => {
   const [socket, setSocket] = useState(null);
   const [isSerialLogOpen, setIsSerialLogOpen] = useState(false);
   const [currentQueueGcode, setCurrentQueueGcode] = useState("");
+  const [selectedItem, setSelectedItem] = useState(null);
+  const [showGcodeModal, setShowGcodeModal] = useState(false);
 
   // Fetch queue data
   const fetchQueue = async () => {
@@ -98,30 +100,57 @@ const QueuePage = () => {
 
     // Listen for completion
     newSocket.on("queue:completed", (data) => {
-      console.log("Queue item completed:", data);
+      console.log("=== Queue Completion Event Received ===");
+      console.log("Full data:", JSON.stringify(data, null, 2));
+      console.log("Status:", data.status);
+      console.log("ID:", data.id);
+      console.log("ItemID:", data.itemId);
 
       if (data.status === "completed") {
         toast.success("Queue item completed successfully!");
 
         // Auto-remove completed item from queue
-        if (data.id) {
+        const idToRemove = data.id || data.itemId;
+        if (idToRemove) {
+          console.log("Attempting to remove item with ID:", idToRemove);
           setTimeout(async () => {
             try {
-              await removeFromQueue(data.id);
+              console.log("Calling removeFromQueue with ID:", idToRemove);
+              const result = await removeFromQueue(idToRemove);
+              console.log("Remove result:", result);
               console.log("Completed item removed from queue");
+              // Force refresh queue
+              await fetchQueue();
+              console.log("Queue refreshed after removal");
             } catch (error) {
               console.error("Error removing completed item:", error);
+              // Still refresh even if remove failed
+              await fetchQueue();
+            }
+          }, 1000); // زيادة الوقت لـ 1 ثانية
+        } else {
+          console.warn("No ID found in completion event, removing by status");
+          // حذف أول item مكتمل
+          setTimeout(async () => {
+            try {
+              const currentItems = items.filter(
+                (item) => item.status === "completed"
+              );
+              if (currentItems.length > 0) {
+                await removeFromQueue(currentItems[0].id);
+              }
+              await fetchQueue();
+            } catch (error) {
+              console.error("Error in fallback removal:", error);
+              await fetchQueue();
             }
           }, 1000);
         }
       } else if (data.status === "failed") {
         toast.error(`Queue item failed: ${data.error}`);
+        // Refresh to update status
+        setTimeout(() => fetchQueue(), 500);
       }
-
-      // Refresh queue after completion
-      setTimeout(() => {
-        fetchQueue();
-      }, 500);
     });
 
     return () => {
@@ -220,6 +249,27 @@ const QueuePage = () => {
     }
   };
 
+  // Handle view G-code
+  const handleViewGcode = (item) => {
+    setSelectedItem(item);
+    setShowGcodeModal(true);
+  };
+
+  // Handle copy G-code
+  const handleCopyGcode = () => {
+    if (selectedItem?.gcode) {
+      navigator.clipboard
+        .writeText(selectedItem.gcode)
+        .then(() => {
+          toast.success("✅ G-code copied to clipboard!");
+        })
+        .catch((err) => {
+          console.error("Failed to copy:", err);
+          toast.error("Failed to copy G-code");
+        });
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="w-full h-full p-8 overflow-auto bg-base-100">
@@ -231,80 +281,210 @@ const QueuePage = () => {
   }
 
   return (
-    <div className="w-full h-full p-8 overflow-auto bg-base-100">
-      <div className="max-w-7xl mx-auto space-y-6">
+    <div className="w-full h-full p-6 overflow-auto bg-gradient-to-br from-base-100 to-base-200">
+      <div className="max-w-7xl mx-auto space-y-4">
         {/* Header */}
-        <div className="flex items-center gap-3 mb-8 pb-4 border-b-2 border-primary/20">
-          <div className="w-1 h-8 bg-primary rounded-full"></div>
-          <h2 className="text-3xl font-bold flex items-center gap-2">
-            <Package className="w-8 h-8" />
-            Queue Manager
-          </h2>
+        <div className="bg-base-100/80 backdrop-blur-sm rounded-3xl p-5 shadow-2xl border-2 border-primary/30">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-3 bg-primary/10 rounded-2xl">
+                <Package className="w-8 h-8 text-primary" />
+              </div>
+              <div>
+                <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
+                  Queue Manager
+                </h2>
+                <p className="text-base-content/50 text-sm mt-0.5">
+                  Manage and process your drawing queue
+                </p>
+              </div>
+            </div>
+            {items.length > 0 && (
+              <div className="flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-2xl">
+                <Package className="w-5 h-5 text-primary" />
+                <span className="font-bold text-primary text-lg">
+                  {items.length} {items.length === 1 ? "Item" : "Items"}
+                </span>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Controls */}
-        <QueueControls
-          queueStats={stats}
-          onProcess={handleProcess}
-          onProcessNext={handleProcessNext}
-          onClear={handleClear}
-          isProcessing={isProcessing}
-        />
-
-        {/* Pen Controls */}
-        <div className="bg-base-200 rounded-2xl p-6 shadow-xl border border-base-300">
-          <div className="flex items-center gap-3 mb-4 pb-3 border-b-2 border-primary/20">
-            <div className="w-1 h-6 bg-primary rounded-full"></div>
-            <h3 className="text-xl font-bold flex items-center gap-2">
-              <PenTool className="w-5 h-5" />
-              Pen Controls
-            </h3>
+        {/* Controls & Pen Lock - Side by Side */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+          {/* Queue Controls - Takes 2 columns */}
+          <div className="lg:col-span-2">
+            <QueueControls
+              queueStats={stats}
+              onProcess={handleProcess}
+              onProcessNext={handleProcessNext}
+              onClear={handleClear}
+              isProcessing={isProcessing}
+            />
           </div>
-          <div className="flex gap-4">
-            <button onClick={handleOpenPen} className="btn btn-success gap-2">
-              <PenTool className="w-4 h-4" />
-              Open Pen (M3 S3000)
-            </button>
-            <button onClick={handleClosePen} className="btn btn-error gap-2">
-              <PenTool className="w-4 h-4" />
-              Close Pen (M3 S0)
-            </button>
+
+          {/* Pen Lock - Takes 1 column */}
+          <div className="bg-base-100/80 backdrop-blur-sm rounded-3xl p-5 shadow-2xl border-2 border-base-300/50">
+            <div className="flex items-center gap-2 mb-4">
+              <div className="p-2 bg-accent/10 rounded-xl">
+                <PenTool className="w-5 h-5 text-accent" />
+              </div>
+              <h3 className="text-lg font-bold">🖊️ Pen Lock</h3>
+            </div>
+            <div className="flex flex-col gap-2">
+              <button
+                onClick={handleOpenPen}
+                className="btn btn-success btn-sm gap-2 w-full shadow-lg"
+              >
+                <PenTool className="w-4 h-4" />
+                Unlock
+              </button>
+              <button
+                onClick={handleClosePen}
+                className="btn btn-error btn-sm gap-2 w-full shadow-lg"
+              >
+                <PenTool className="w-4 h-4" />
+                Lock
+              </button>
+            </div>
           </div>
         </div>
 
         {/* Queue List */}
-        <div className="bg-base-200 rounded-2xl p-6 shadow-xl border border-base-300">
-          <div className="flex items-center gap-3 mb-6 pb-4 border-b-2 border-primary/20">
-            <div className="w-1 h-6 bg-primary rounded-full"></div>
-            <h3 className="text-xl font-bold">Queue Items</h3>
-            <span className="badge badge-primary">{items.length}</span>
+        <div className="bg-base-100/80 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-base-300/50">
+          <div className="flex items-center gap-3 mb-5 pb-3 border-b border-primary/10">
+            <div className="p-2 bg-primary/10 rounded-xl">
+              <Package className="w-5 h-5 text-primary" />
+            </div>
+            <h3 className="text-lg font-bold">📋 Queue Items</h3>
+            {items.length > 0 && (
+              <span className="badge badge-primary badge-sm">
+                {items.length}
+              </span>
+            )}
           </div>
 
-          <QueueList
-            items={items}
-            onDelete={handleDelete}
-            onReorder={fetchQueue}
-          />
+          {items.length === 0 ? (
+            <div className="text-center py-16 bg-gradient-to-br from-base-200/50 to-base-300/50 rounded-2xl border-2 border-dashed border-base-content/10">
+              <div className="p-4 bg-base-content/5 w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center">
+                <Package className="w-10 h-10 text-base-content/20" />
+              </div>
+              <h4 className="text-xl font-semibold text-base-content/60 mb-2">
+                Queue is Empty
+              </h4>
+              <p className="text-base-content/50 text-sm">
+                Add items from Image or Text Mode to start
+              </p>
+            </div>
+          ) : (
+            <QueueList
+              items={items}
+              onDelete={handleDelete}
+              onViewGcode={handleViewGcode}
+              onReorder={fetchQueue}
+            />
+          )}
         </div>
+      </div>
 
-        {/* Help Info */}
-        {items.length === 0 && (
-          <div className="alert alert-info">
-            <AlertCircle className="w-5 h-5" />
-            <div>
-              <h4 className="font-semibold">How to use the Queue:</h4>
-              <ol className="text-sm list-decimal list-inside mt-2 space-y-1">
-                <li>Go to Image or Text Mode and generate G-code</li>
-                <li>Click "Add to Queue" in the preview modal</li>
-                <li>Come back here and reorder items by dragging</li>
-                <li>
-                  Click "Process Queue" to start drawing all items sequentially
-                </li>
-              </ol>
+      {/* G-code Modal */}
+      {showGcodeModal && selectedItem && (
+        <div className="modal modal-open z-50">
+          <div className="modal-box max-w-5xl h-[85vh] flex flex-col p-0 bg-base-100 shadow-2xl">
+            {/* Modal Header */}
+            <div className="flex items-center justify-between p-6 border-b-2 border-base-300 bg-gradient-to-r from-primary/10 to-secondary/10">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-primary/20 rounded-xl">
+                  <FileCode className="w-7 h-7 text-primary" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-2xl">G-code Preview</h3>
+                  <p className="text-sm text-base-content/60 mt-1">
+                    {selectedItem.type === "image" ? "Image" : "Text"} Mode
+                  </p>
+                </div>
+              </div>
+              <button
+                className="btn btn-sm btn-circle btn-ghost hover:bg-error/20 hover:text-error hover:scale-110 transition-all"
+                onClick={() => setShowGcodeModal(false)}
+              >
+                ✕
+              </button>
+            </div>
+
+            {/* Stats Bar */}
+            {selectedItem.stats && (
+              <div className="px-6 py-3 bg-base-200 border-b border-base-300">
+                <div className="flex flex-wrap gap-4 text-sm">
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-base-content/70">
+                      Lines:
+                    </span>
+                    <span className="badge badge-primary badge-sm">
+                      {selectedItem.stats.totalLines || 0}
+                    </span>
+                  </div>
+                  {selectedItem.stats.estimatedTime && (
+                    <div className="flex items-center gap-2">
+                      <span className="font-semibold text-base-content/70">
+                        Time:
+                      </span>
+                      <span className="badge badge-success badge-sm">
+                        {selectedItem.stats.estimatedTime}
+                      </span>
+                    </div>
+                  )}
+                  <div className="flex items-center gap-2">
+                    <span className="font-semibold text-base-content/70">
+                      Type:
+                    </span>
+                    <span className="badge badge-accent badge-sm capitalize">
+                      {selectedItem.type}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* G-code Content */}
+            <div className="flex-1 p-6 overflow-hidden">
+              <textarea
+                className="textarea textarea-bordered w-full h-full font-mono text-xs resize-none bg-base-200/50 focus:outline-none focus:border-primary leading-relaxed"
+                value={selectedItem.gcode || "No G-code available"}
+                readOnly
+                spellCheck={false}
+              ></textarea>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="p-5 bg-base-200 border-t-2 border-base-300 flex justify-between items-center gap-3">
+              <div className="text-xs text-base-content/60">
+                📝 {selectedItem.gcode?.split("\n").length || 0} lines •{" "}
+                {(selectedItem.gcode?.length || 0).toLocaleString()} characters
+              </div>
+              <div className="flex gap-2">
+                <button
+                  onClick={handleCopyGcode}
+                  className="btn btn-primary btn-sm gap-2 shadow-lg"
+                >
+                  <FileCode className="w-4 h-4" />
+                  Copy G-code
+                </button>
+                <button
+                  onClick={() => setShowGcodeModal(false)}
+                  className="btn btn-ghost btn-sm"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </div>
-        )}
-      </div>
+          <div
+            className="modal-backdrop bg-black/70 backdrop-blur-sm"
+            onClick={() => setShowGcodeModal(false)}
+          ></div>
+        </div>
+      )}
 
       {/* Serial Log Modal */}
       <SerialLogModal

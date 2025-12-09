@@ -3,7 +3,7 @@ import QueueItem from "./QueueItem";
 import { reorderQueue } from "../../api/queueApi";
 import { toast } from "sonner";
 
-const QueueList = ({ items, onDelete, onReorder }) => {
+const QueueList = ({ items, onDelete, onViewGcode, onReorder }) => {
   const [draggedIndex, setDraggedIndex] = useState(null);
   const [dragOverIndex, setDragOverIndex] = useState(null);
 
@@ -94,6 +94,7 @@ const QueueList = ({ items, onDelete, onReorder }) => {
           <QueueItem
             item={item}
             onDelete={onDelete}
+            onViewGcode={onViewGcode}
             onDragStart={handleDragStart(index)}
             onDragEnd={handleDragEnd}
             onDragOver={handleDragOver(index)}

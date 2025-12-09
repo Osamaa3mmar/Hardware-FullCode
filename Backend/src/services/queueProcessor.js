@@ -114,6 +114,7 @@ async function processQueueItem(item, io, port = "COM4", baudRate = 115200) {
     // Emit completion event
     if (io) {
       io.emit("queue:completed", {
+        id: item.id,
         itemId: item.id,
         status: "completed",
         totalLines: lines.length,
@@ -141,6 +142,7 @@ async function processQueueItem(item, io, port = "COM4", baudRate = 115200) {
     // Emit error event
     if (io) {
       io.emit("queue:completed", {
+        id: item.id,
         itemId: item.id,
         status: "failed",
         error: error.message,

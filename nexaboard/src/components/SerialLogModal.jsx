@@ -192,6 +192,22 @@ const SerialLogModal = ({ isOpen, onClose, gcode, port = "COM4" }) => {
     setLogs([]);
   };
 
+  const handleClose = () => {
+    // Force stop any ongoing communication
+    if (eventSourceRef.current) {
+      eventSourceRef.current.close();
+    }
+    if (portCheckInterval.current) {
+      clearInterval(portCheckInterval.current);
+    }
+    // Reset state
+    setLogs([]);
+    setStatus("idle");
+    setProgress({ current: 0, total: 0 });
+    // Call parent close
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   const getLogColor = (type) => {
@@ -289,9 +305,8 @@ const SerialLogModal = ({ isOpen, onClose, gcode, port = "COM4" }) => {
             <div className="flex items-center gap-2">
               {getStatusBadge()}
               <button
-                onClick={onClose}
+                onClick={handleClose}
                 className="btn btn-ghost btn-sm btn-circle"
-                disabled={status === "sending"}
               >
                 <X className="w-5 h-5" />
               </button>

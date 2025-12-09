@@ -233,39 +233,75 @@ router.post("/command", async (req, res) => {
       });
     }
 
+    console.log(`Attempting to send command to ${port}: ${command}`);
+
     // Create temporary serial connection
     const serialPort = new SerialPort({
       path: port,
       baudRate: baudRate,
+      autoOpen: false,
     });
 
     const parser = serialPort.pipe(new ReadlineParser({ delimiter: "\n" }));
 
-    // Wait for port to open
-    await new Promise((resolve, reject) => {
-      serialPort.on("open", resolve);
-      serialPort.on("error", reject);
+    let arduinoResponse = "";
+    const responses = [];
+
+    // Listen for Arduino response
+    parser.on("data", (data) => {
+      const trimmedData = data.trim();
+      console.log(`Arduino response: ${trimmedData}`);
+      responses.push(trimmedData);
+      arduinoResponse += trimmedData + " ";
     });
 
-    console.log(`Sending command to ${port}: ${command}`);
-
-    // Send command
+    // Open port
     await new Promise((resolve, reject) => {
-      serialPort.write(command + "\n", (err) => {
+      serialPort.open((err) => {
         if (err) reject(err);
         else resolve();
       });
     });
 
-    // Wait a bit for response
-    await new Promise((resolve) => setTimeout(resolve, 500));
+    console.log(`Port ${port} opened successfully`);
+
+    // Wait for Arduino to initialize (GRBL needs time after reset)
+    await new Promise((resolve) => setTimeout(resolve, 2000));
+
+    // Send command
+    console.log(`Writing command: ${command}`);
+    await new Promise((resolve, reject) => {
+      serialPort.write(command + "\n", (err) => {
+        if (err) {
+          console.error("Write error:", err);
+          reject(err);
+        } else {
+          console.log("Command written successfully");
+          resolve();
+        }
+      });
+    });
+
+    // Wait for response
+    console.log("Waiting for response...");
+    await new Promise((resolve) => setTimeout(resolve, 1500));
 
     // Close port
-    serialPort.close();
+    await new Promise((resolve) => {
+      serialPort.close((err) => {
+        if (err) console.error("Error closing port:", err);
+        resolve();
+      });
+    });
+
+    console.log(`Total responses received: ${responses.length}`);
+    console.log(`Combined response: ${arduinoResponse}`);
 
     res.json({
       success: true,
       message: `Command sent: ${command}`,
+      response: arduinoResponse.trim() || "No response received",
+      responses: responses,
     });
   } catch (error) {
     console.error("Error sending command:", error);

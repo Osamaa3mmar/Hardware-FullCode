@@ -63,16 +63,16 @@ const TextareaComponent = forwardRef(
           placeholder="Enter your text here..."
           className="border-2 border-base-300 p-4 rounded-xl bg-base-100 focus:outline-none focus:border-primary transition-colors text-base-content"
           style={{
-            width: "600px",
+            width: "320px",
             height: "500px",
-            fontSize: `${fontSize * 2}px`, // Convert mm to display px (approximate scale)
+            fontSize: `${fontSize}px`,
             color: textColor,
             resize: "none",
-            overflow: "auto", // Allow scrolling when text is large
+            overflow: "auto",
           }}
         />
         {error && (
-          <div className="alert alert-error mt-3 max-w-[600px] rounded-xl">
+          <div className="alert alert-error mt-3 max-w-[320px] rounded-xl">
             <span className="text-sm">{error}</span>
           </div>
         )}

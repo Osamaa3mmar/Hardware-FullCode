@@ -21,7 +21,7 @@ const TextPreviewCanvas = ({ text, fontData, fontSize, textColor }) => {
     // Convert to uppercase since Hershey fonts only have uppercase
     const upperText = text.toUpperCase();
     const lines = upperText.split("\n");
-    const scale = fontSize / fontData.lineHeight;
+    const scale = (fontSize / fontData.lineHeight) * 4; // Increased scale for better visibility
     const spacing = 2 * scale;
     const lineSpacing = fontData.lineHeight * scale * 1.5;
 
@@ -104,8 +104,8 @@ const TextPreviewCanvas = ({ text, fontData, fontSize, textColor }) => {
         </div>
         <canvas
           ref={canvasRef}
-          width={600}
-          height={450}
+          width={500}
+          height={400}
           className="bg-gray-100 rounded-lg"
         />
       </div>
