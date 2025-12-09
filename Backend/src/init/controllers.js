@@ -4,6 +4,7 @@ import serialController from "../controllers/serialController.js";
 import queueController from "../controllers/queueController.js";
 import fontController from "../controllers/fontController.js";
 import textController from "../controllers/textController.js";
+import drawController from "../controllers/drawController.js";
 
 export default function initControllers(app) {
   app.use("/api/cnc", exampleController);
@@ -12,4 +13,5 @@ export default function initControllers(app) {
   app.use("/api/queue", queueController);
   app.use("/api/fonts", fontController);
   app.use("/api/text", textController);
+  app.use("/api/draw", drawController);
 }

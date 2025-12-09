@@ -1,19 +1,12 @@
 import FreeDrawButton from "./FreeDrawButton";
 import EraseButton from "./EraseButton";
-import AddTextButton from "./AddTextButton";
-import AddImageButton from "./AddImageButton";
-import DrawColorPicker from "./DrawColorPicker";
 import ClearBoardButton from "./ClearBoardButton";
 
 const Toolbar = ({
   isDrawingMode,
   isEraserMode,
-  selectedColor,
   onFreeDrawClick,
   onEraseClick,
-  onAddTextClick,
-  onAddImageClick,
-  onColorChange,
   onClearBoard,
 }) => {
   return (
@@ -38,19 +31,7 @@ const Toolbar = ({
       <div className="flex flex-wrap gap-3">
         <FreeDrawButton isActive={isDrawingMode} onClick={onFreeDrawClick} />
         <EraseButton isActive={isEraserMode} onClick={onEraseClick} />
-        <AddTextButton onClick={onAddTextClick} />
-        <AddImageButton onImageSelect={onAddImageClick} />
         <ClearBoardButton onClick={onClearBoard} />
-      </div>
-
-      <div className="divider"></div>
-
-      <div className="flex items-center gap-4">
-        <span className="font-semibold text-sm">Color:</span>
-        <DrawColorPicker
-          selectedColor={selectedColor}
-          onColorChange={onColorChange}
-        />
       </div>
     </div>
   );

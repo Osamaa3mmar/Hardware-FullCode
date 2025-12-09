@@ -1,8 +1,8 @@
 import { Play } from "lucide-react";
 
-const DrawNowButton = () => {
+const DrawNowButton = ({ onClick }) => {
   const handleDrawNow = () => {
-    // Empty handler as per requirements
+    if (onClick) onClick();
   };
 
   return (
