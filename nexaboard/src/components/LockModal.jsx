@@ -23,7 +23,7 @@ const LockModal = ({ isOpen, onClose, onLockStatusChange }) => {
     setError("");
     
     try {
-      const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.SYSTEM_UNLOCK}`, {
+      const response = await fetch(API_CONFIG.ENDPOINTS.SYSTEM_UNLOCK, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ code: password }),

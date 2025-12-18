@@ -15,6 +15,25 @@ export default function App() {
   const [isLockModalOpen, setIsLockModalOpen] = useState(false);
   const [isSystemLocked, setIsSystemLocked] = useState(false);
 
+  // Check lock status on app load
+  useEffect(() => {
+    const checkLockStatus = async () => {
+      try {
+        const response = await fetch(API_CONFIG.ENDPOINTS.SYSTEM_STATUS);
+        const data = await response.json();
+        setIsSystemLocked(data.locked);
+        // If locked, show the modal
+        if (data.locked) {
+          setIsLockModalOpen(true);
+        }
+      } catch (error) {
+        console.error("Error checking lock status:", error);
+      }
+    };
+
+    checkLockStatus();
+  }, []);
+
   // Global keyboard listener for Ctrl+L
   useEffect(() => {
     const handleKeyDown = async (e) => {
@@ -24,7 +43,7 @@ export default function App() {
         
         // Automatically lock the system
         try {
-          const response = await fetch(`${API_CONFIG.BASE_URL}${API_CONFIG.ENDPOINTS.SYSTEM_LOCK}`, {
+          const response = await fetch(API_CONFIG.ENDPOINTS.SYSTEM_LOCK, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
           });
