@@ -9,8 +9,9 @@ import {
   WifiOff,
   Unplug,
 } from "lucide-react";
+import { API_CONFIG, SERIAL_CONFIG } from "../config/api.config.js";
 
-const SerialLogModal = ({ isOpen, onClose, gcode, port = "COM4" }) => {
+const SerialLogModal = ({ isOpen, onClose, gcode, port = SERIAL_CONFIG.DEFAULT_PORT }) => {
   const [logs, setLogs] = useState([]);
   const [status, setStatus] = useState("idle"); // idle, connecting, sending, complete, error, disconnected
   const [progress, setProgress] = useState({ current: 0, total: 0 });
@@ -59,7 +60,7 @@ const SerialLogModal = ({ isOpen, onClose, gcode, port = "COM4" }) => {
 
   const checkPortStatus = async () => {
     try {
-      const response = await fetch("http://localhost:3000/api/serial/status");
+      const response = await fetch(`${API_CONFIG.ENDPOINTS.SERIAL}/status`);
       const data = await response.json();
 
       const wasConnected = portStatus.connected;
@@ -97,7 +98,7 @@ const SerialLogModal = ({ isOpen, onClose, gcode, port = "COM4" }) => {
 
     try {
       // Create EventSource for SSE
-      const url = `http://localhost:3000/api/serial/send`;
+      const url = `${API_CONFIG.ENDPOINTS.SERIAL}/send`;
 
       const response = await fetch(url, {
         method: "POST",

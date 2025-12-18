@@ -1,4 +1,6 @@
-const API_BASE_URL = "http://localhost:3000/api";
+import { API_CONFIG, SERIAL_CONFIG } from '../config/api.config.js';
+
+const API_BASE_URL = API_CONFIG.ENDPOINTS.IMAGE;
 
 /**
  * Convert image to G-code
@@ -16,7 +18,7 @@ export async function convertImageToGcode(imageFile, settings) {
   });
 
   try {
-    const response = await fetch(`${API_BASE_URL}/image/convert`, {
+    const response = await fetch(`${API_BASE_URL}/convert`, {
       method: "POST",
       body: formData,
     });
@@ -36,7 +38,7 @@ export async function convertImageToGcode(imageFile, settings) {
 /**
  * Send G-code to serial port with real-time progress updates
  * @param {string} gcode - G-code to send
- * @param {string} port - Serial port (e.g., "COM4")
+ * @param {string} port - Serial port (e.g., configured in SERIAL_CONFIG)
  * @param {number} baudRate - Baud rate (default: 115200)
  * @param {Function} onProgress - Progress callback
  * @param {Function} onStatus - Status callback
@@ -51,7 +53,7 @@ export function sendToSerial(
   { onProgress, onStatus, onComplete, onError }
 ) {
   const eventSource = new EventSource(
-    `${API_BASE_URL}/serial/send?gcode=${encodeURIComponent(
+    `${API_CONFIG.ENDPOINTS.SERIAL}/send?gcode=${encodeURIComponent(
       gcode
     )}&port=${encodeURIComponent(port)}&baudRate=${baudRate}`
   );
@@ -92,12 +94,12 @@ export function sendToSerial(
  */
 export async function sendGcodeToSerial(
   gcode,
-  port = "COM4",
+  port = SERIAL_CONFIG.DEFAULT_PORT,
   baudRate = 115200,
   callbacks = {}
 ) {
   try {
-    const response = await fetch(`${API_BASE_URL}/serial/send`, {
+    const response = await fetch(`${API_CONFIG.ENDPOINTS.SERIAL}/send`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

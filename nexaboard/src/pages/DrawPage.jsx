@@ -5,6 +5,7 @@ import Toolbar from "../components/draw/Toolbar";
 import GenerateButton from "../components/GenerateButton";
 import AddToQueueButton from "../components/AddToQueueButton";
 import DrawNowButton from "../components/DrawNowButton";
+import { API_CONFIG } from "../config/api.config.js";
 
 const DrawPage = () => {
   const canvasRef = useRef(null);
@@ -144,7 +145,7 @@ const DrawPage = () => {
       console.log(`[DrawPage] Sending ${pathObjects.length} paths to backend`);
 
       // Call backend API to convert canvas to G-code
-      const response = await fetch("http://localhost:3000/api/draw/convert", {
+      const response = await fetch(`${API_CONFIG.ENDPOINTS.DRAW}/convert`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -179,7 +180,7 @@ const DrawPage = () => {
     if (!gcode || !stats) return;
 
     try {
-      const response = await fetch("http://localhost:3000/api/queue/add", {
+      const response = await fetch(`${API_CONFIG.ENDPOINTS.QUEUE}/add`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -211,7 +212,7 @@ const DrawPage = () => {
     if (!gcode) return;
 
     try {
-      const response = await fetch("http://localhost:3000/api/serial/send", {
+      const response = await fetch(`${API_CONFIG.ENDPOINTS.SERIAL}/send`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -404,7 +405,6 @@ const DrawPage = () => {
             <div className="px-6 py-4 bg-base-200 border-t border-base-300">
               <div className="flex gap-3 justify-end">
                 <AddToQueueButton onClick={handleAddToQueue} />
-                <DrawNowButton onClick={handleDrawNow} />
               </div>
             </div>
           </div>

@@ -80,7 +80,7 @@ const QueueItem = ({
   return (
     <>
       <div
-        className="bg-gradient-to-br from-base-100 to-base-200 rounded-2xl p-4 shadow-xl border-2 border-base-300/50 hover:border-primary/50 hover:shadow-2xl transition-all group"
+        className="group relative bg-white dark:bg-base-200 rounded-xl p-4 border-2 border-base-300 hover:border-primary transition-all"
         onDragOver={(e) => {
           e.preventDefault();
           if (onDragOver) onDragOver(e);
@@ -90,11 +90,19 @@ const QueueItem = ({
           if (onDrop) onDrop(e);
         }}
       >
-        <div className="flex items-start gap-4">
+        {/* Status Indicator Bar */}
+        <div className={`absolute top-0 left-0 w-1 h-full rounded-l-xl ${
+          item.status === "completed" ? "bg-success" :
+          item.status === "processing" ? "bg-info" :
+          item.status === "failed" ? "bg-error" :
+          "bg-base-300"
+        }`}></div>
+
+        <div className="flex items-center gap-4 pl-2">
           {/* Drag Handle */}
           {draggable && item.status === "pending" && (
             <div
-              className="flex items-center justify-center text-base-content/20 group-hover:text-primary cursor-grab active:cursor-grabbing transition-colors touch-none"
+              className="cursor-grab active:cursor-grabbing text-base-content/20 hover:text-primary transition-colors"
               draggable={true}
               onDragStart={(e) => {
                 e.stopPropagation();
@@ -106,7 +114,7 @@ const QueueItem = ({
               }}
               onMouseDown={(e) => e.stopPropagation()}
             >
-              <GripVertical className="w-5 h-5 pointer-events-none" />
+              <GripVertical className="w-5 h-5" />
             </div>
           )}
 
@@ -116,94 +124,111 @@ const QueueItem = ({
               <img
                 src={item.processedImage}
                 alt="Preview"
-                className="w-24 h-24 object-cover rounded-xl bg-base-300 border-2 border-base-300/50 shadow-lg"
+                className="w-20 h-20 object-cover rounded-lg border-2 border-base-300"
               />
             </div>
           )}
 
           {/* Content */}
           <div className="flex-1 min-w-0">
-            {/* Header */}
-            <div className="flex items-center justify-between gap-2 mb-3">
-              <div className="flex items-center gap-2 bg-base-200/50 px-3 py-1 rounded-lg">
-                {getTypeIcon(item.type)}
-                <span className="font-bold text-xs uppercase tracking-wide text-base-content/80">
-                  {item.type} Mode
-                </span>
+            <div className="flex items-start justify-between gap-2 mb-2">
+              <div className="flex items-center gap-2">
+                <div className={`p-1.5 rounded-lg ${
+                  item.type === "image" ? "bg-purple-100 dark:bg-purple-900/20" : "bg-blue-100 dark:bg-blue-900/20"
+                }`}>
+                  {getTypeIcon(item.type)}
+                </div>
+                <div>
+                  <h3 className="font-semibold text-base-content text-sm">
+                    {item.type === "image" ? "Image" : item.type === "text" ? "Text" : "Drawing"}
+                  </h3>
+                  <p className="text-xs text-base-content/50">
+                    {formatTime(item.timestamp)}
+                  </p>
+                </div>
               </div>
-              {getStatusBadge(item.status)}
+
+              {/* Status Badge - Minimal */}
+              {item.status === "processing" && (
+                <div className="flex items-center gap-1 text-info text-xs font-medium">
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                  <span>Processing</span>
+                </div>
+              )}
+              {item.status === "completed" && (
+                <div className="flex items-center gap-1 text-success text-xs font-medium">
+                  <CheckCircle2 className="w-3 h-3" />
+                </div>
+              )}
+              {item.status === "failed" && (
+                <div className="flex items-center gap-1 text-error text-xs font-medium">
+                  <XCircle className="w-3 h-3" />
+                </div>
+              )}
             </div>
 
-            {/* Stats */}
+            {/* Stats Row */}
             {item.stats && (
-              <div className="grid grid-cols-2 gap-2 text-sm mb-3">
+              <div className="flex items-center gap-4 text-xs text-base-content/60 mb-3">
                 {item.stats.totalLines && (
-                  <div className="flex items-center gap-1.5 text-base-content/70 bg-info/10 px-2 py-1 rounded-lg">
-                    <FileCode className="w-3.5 h-3.5 text-info" />
-                    <span className="font-medium">
-                      {item.stats.totalLines} lines
-                    </span>
+                  <div className="flex items-center gap-1.5">
+                    <FileCode className="w-3.5 h-3.5" />
+                    <span>{item.stats.totalLines} lines</span>
                   </div>
                 )}
                 {item.stats.estimatedTime && (
-                  <div className="flex items-center gap-1.5 text-base-content/70 bg-success/10 px-2 py-1 rounded-lg">
-                    <Clock className="w-3.5 h-3.5 text-success" />
-                    <span className="font-medium">
-                      {item.stats.estimatedTime}
-                    </span>
+                  <div className="flex items-center gap-1.5">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>{item.stats.estimatedTime}</span>
                   </div>
                 )}
-              </div>
-            )}
-
-            {/* Timestamp */}
-            <div className="text-xs text-base-content/50 flex items-center gap-1.5 mb-2">
-              <Clock className="w-3 h-3" />
-              Added at {formatTime(item.timestamp)}
-            </div>
-
-            {/* View G-code Button */}
-            <button
-              onClick={() => onViewGcode && onViewGcode(item)}
-              className="btn btn-xs btn-outline btn-primary gap-1.5 mt-2"
-            >
-              <Eye className="w-3 h-3" />
-              View G-code
-            </button>
-
-            {/* Error Message */}
-            {item.error && (
-              <div className="mt-3 p-2.5 bg-error/10 border-2 border-error/30 rounded-lg text-xs text-error font-semibold">
-                ⚠️ {item.error}
               </div>
             )}
 
             {/* Processing Progress */}
             {item.status === "processing" && item.stats?.totalLines && (
-              <div className="mt-3 bg-info/10 p-3 rounded-lg border border-info/20">
-                <div className="flex items-center justify-between text-xs mb-2 font-semibold">
-                  <span className="text-info">Processing...</span>
-                  <span className="text-info">
-                    {item.currentLine} / {item.stats.totalLines}
+              <div className="mb-3">
+                <div className="flex items-center justify-between text-xs mb-1.5">
+                  <span className="text-base-content/60">Progress</span>
+                  <span className="text-base-content/60 font-medium">
+                    {Math.round((item.currentLine / item.stats.totalLines) * 100)}%
                   </span>
                 </div>
-                <progress
-                  className="progress progress-info w-full h-2"
-                  value={item.currentLine}
-                  max={item.stats.totalLines}
-                ></progress>
+                <div className="w-full bg-base-300 rounded-full h-1.5 overflow-hidden">
+                  <div 
+                    className="bg-info h-full transition-all duration-300"
+                    style={{ width: `${(item.currentLine / item.stats.totalLines) * 100}%` }}
+                  ></div>
+                </div>
               </div>
             )}
-          </div>
 
-          {/* Delete Button */}
-          <button
-            onClick={() => onDelete(item.id)}
-            className="btn btn-ghost btn-sm btn-circle text-error hover:bg-error/20 hover:scale-110 transition-all shadow-lg"
-            disabled={item.status === "processing"}
-          >
-            <Trash2 className="w-4 h-4" />
-          </button>
+            {/* Error Message */}
+            {item.error && (
+              <div className="mb-3 p-2 bg-error/10 border border-error/20 rounded-lg text-xs text-error">
+                {item.error}
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => onViewGcode && onViewGcode(item)}
+                className="text-xs text-primary hover:underline flex items-center gap-1"
+              >
+                <Eye className="w-3 h-3" />
+                View Code
+              </button>
+              <button
+                onClick={() => onDelete(item.id)}
+                className="text-xs text-error hover:underline flex items-center gap-1"
+                disabled={item.status === "processing"}
+              >
+                <Trash2 className="w-3 h-3" />
+                Delete
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </>

@@ -1,4 +1,6 @@
-const API_BASE_URL = "http://localhost:3000/api";
+import { API_CONFIG } from '../config/api.config.js';
+
+const API_BASE_URL = API_CONFIG.ENDPOINTS.TEXT;
 
 /**
  * Fetch all available fonts with metadata

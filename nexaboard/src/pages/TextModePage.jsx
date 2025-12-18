@@ -483,7 +483,6 @@ const TextModePage = () => {
                   Copy G-code
                 </button>
                 <AddToQueueButton onClick={handleAddToQueue} />
-                <DrawNowButton />
               </div>
             </div>
           </div>

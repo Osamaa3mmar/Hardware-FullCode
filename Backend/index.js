@@ -5,6 +5,7 @@ import cors from "cors";
 import initControllers from "./src/init/controllers.js";
 import { loadQueue } from "./src/services/queuePersistence.js";
 import { nexaboard } from "./Data.js";
+import { lockMiddleware } from "./src/middleware/lockMiddleware.js";
 
 const app = express();
 const httpServer = createServer(app);
@@ -21,6 +22,9 @@ const PORT = 3000;
 app.use(cors());
 app.use(express.json({ limit: "50mb" })); // Increase limit for base64 images
 app.use(express.urlencoded({ extended: true, limit: "50mb" }));
+
+// Lock middleware - must be after body parsers but before routes
+app.use(lockMiddleware);
 
 // Make io available to controllers
 app.set("io", io);

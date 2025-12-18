@@ -134,7 +134,6 @@ const GcodePreviewModal = ({
               Close
             </button>
             <AddToQueueButton onClick={handleAddToQueue} />
-            <DrawNowButton onClick={handleDrawNow} />
           </div>
         </div>
       </div>

@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
-import { Package, AlertCircle, PenTool, FileCode } from "lucide-react";
+import { Package, AlertCircle, FileCode } from "lucide-react";
 import { toast } from "sonner";
 import { io } from "socket.io-client";
 import QueueList from "../components/queue/QueueList";
 import QueueControls from "../components/queue/QueueControls";
+import ManualControl from "../components/queue/ManualControl";
 import SerialLogModal from "../components/SerialLogModal";
+import { SOCKET_CONFIG, SERIAL_CONFIG } from "../config/api.config.js";
 import {
   getQueue,
   getQueueStatus,
@@ -53,7 +55,7 @@ const QueuePage = () => {
 
   // Initialize Socket.IO connection
   useEffect(() => {
-    const newSocket = io("http://localhost:3000");
+    const newSocket = io(SOCKET_CONFIG.SERVER_URL);
     setSocket(newSocket);
 
     newSocket.on("connect", () => {
@@ -227,28 +229,6 @@ const QueuePage = () => {
     }
   };
 
-  // Handle open pen
-  const handleOpenPen = async () => {
-    try {
-      await sendCommand("M3 S3000");
-      toast.success("Pen opened (M3 S3000)");
-    } catch (error) {
-      console.error("Error opening pen:", error);
-      toast.error("Failed to open pen");
-    }
-  };
-
-  // Handle close pen
-  const handleClosePen = async () => {
-    try {
-      await sendCommand("M3 S0");
-      toast.success("Pen closed (M3 S0)");
-    } catch (error) {
-      console.error("Error closing pen:", error);
-      toast.error("Failed to close pen");
-    }
-  };
-
   // Handle view G-code
   const handleViewGcode = (item) => {
     setSelectedItem(item);
@@ -272,118 +252,84 @@ const QueuePage = () => {
 
   if (isLoading) {
     return (
-      <div className="w-full h-full p-8 overflow-auto bg-base-100">
-        <div className="max-w-7xl mx-auto flex items-center justify-center h-full">
+      <div className="w-full h-full flex items-center justify-center bg-base-100">
+        <div className="flex flex-col items-center gap-4">
           <div className="loading loading-spinner loading-lg text-primary"></div>
+          <p className="text-sm text-base-content/60">Loading queue...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="w-full h-full p-6 overflow-auto bg-gradient-to-br from-base-100 to-base-200">
-      <div className="max-w-7xl mx-auto space-y-4">
-        {/* Header */}
-        <div className="bg-base-100/80 backdrop-blur-sm rounded-3xl p-5 shadow-2xl border-2 border-primary/30">
+    <div className="w-full h-full p-4 md:p-6 overflow-auto bg-base-100">
+      <div className="max-w-7xl mx-auto">
+        {/* Simple Header with Total Count */}
+        <div className="mb-6">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              <div className="p-3 bg-primary/10 rounded-2xl">
-                <Package className="w-8 h-8 text-primary" />
-              </div>
-              <div>
-                <h2 className="text-3xl font-bold bg-gradient-to-r from-primary to-secondary bg-clip-text text-transparent">
-                  Queue Manager
-                </h2>
-                <p className="text-base-content/50 text-sm mt-0.5">
-                  Manage and process your drawing queue
-                </p>
-              </div>
-            </div>
-            {items.length > 0 && (
-              <div className="flex items-center gap-2 bg-primary/10 px-4 py-2 rounded-2xl">
-                <Package className="w-5 h-5 text-primary" />
-                <span className="font-bold text-primary text-lg">
-                  {items.length} {items.length === 1 ? "Item" : "Items"}
-                </span>
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Controls & Pen Lock - Side by Side */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-          {/* Queue Controls - Takes 2 columns */}
-          <div className="lg:col-span-2">
-            <QueueControls
-              queueStats={stats}
-              onProcess={handleProcess}
-              onProcessNext={handleProcessNext}
-              onClear={handleClear}
-              isProcessing={isProcessing}
-            />
-          </div>
-
-          {/* Pen Lock - Takes 1 column */}
-          <div className="bg-base-100/80 backdrop-blur-sm rounded-3xl p-5 shadow-2xl border-2 border-base-300/50">
-            <div className="flex items-center gap-2 mb-4">
-              <div className="p-2 bg-accent/10 rounded-xl">
-                <PenTool className="w-5 h-5 text-accent" />
-              </div>
-              <h3 className="text-lg font-bold">🖊️ Pen Lock</h3>
-            </div>
-            <div className="flex flex-col gap-2">
-              <button
-                onClick={handleOpenPen}
-                className="btn btn-success btn-sm gap-2 w-full shadow-lg"
-              >
-                <PenTool className="w-4 h-4" />
-                Unlock
-              </button>
-              <button
-                onClick={handleClosePen}
-                className="btn btn-error btn-sm gap-2 w-full shadow-lg"
-              >
-                <PenTool className="w-4 h-4" />
-                Lock
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {/* Queue List */}
-        <div className="bg-base-100/80 backdrop-blur-sm rounded-3xl p-6 shadow-2xl border-2 border-base-300/50">
-          <div className="flex items-center gap-3 mb-5 pb-3 border-b border-primary/10">
-            <div className="p-2 bg-primary/10 rounded-xl">
-              <Package className="w-5 h-5 text-primary" />
-            </div>
-            <h3 className="text-lg font-bold">📋 Queue Items</h3>
-            {items.length > 0 && (
-              <span className="badge badge-primary badge-sm">
-                {items.length}
-              </span>
-            )}
-          </div>
-
-          {items.length === 0 ? (
-            <div className="text-center py-16 bg-gradient-to-br from-base-200/50 to-base-300/50 rounded-2xl border-2 border-dashed border-base-content/10">
-              <div className="p-4 bg-base-content/5 w-20 h-20 rounded-full mx-auto mb-4 flex items-center justify-center">
-                <Package className="w-10 h-10 text-base-content/20" />
-              </div>
-              <h4 className="text-xl font-semibold text-base-content/60 mb-2">
-                Queue is Empty
-              </h4>
-              <p className="text-base-content/50 text-sm">
-                Add items from Image or Text Mode to start
+            <div>
+              <h1 className="text-3xl font-bold text-base-content mb-1">Queue</h1>
+              <p className="text-sm text-base-content/50">
+                {items.length === 0 ? "No items" : `${items.length} ${items.length === 1 ? "item" : "items"}`}
               </p>
             </div>
-          ) : (
-            <QueueList
-              items={items}
-              onDelete={handleDelete}
-              onViewGcode={handleViewGcode}
-              onReorder={fetchQueue}
-            />
-          )}
+            
+            {/* Action Buttons */}
+            {items.length > 0 && (
+              <div className="flex gap-2">
+                <button
+                  onClick={handleProcessNext}
+                  disabled={stats.pending === 0 || isProcessing}
+                  className="btn btn-primary gap-2"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                  Draw Next
+                </button>
+                <button
+                  onClick={handleClear}
+                  disabled={isProcessing}
+                  className="btn btn-ghost gap-2"
+                >
+                  <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  Clear All
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Main Grid Layout */}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+          {/* Queue List - Takes 8 columns */}
+          <div className="lg:col-span-8">
+            {items.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-20 text-center border-2 border-dashed border-base-300 rounded-xl bg-base-200/30">
+                <div className="w-16 h-16 rounded-full bg-base-300/50 flex items-center justify-center mb-4">
+                  <Package className="w-8 h-8 text-base-content/30" />
+                </div>
+                <h3 className="text-lg font-semibold text-base-content/60 mb-2">
+                  Queue is Empty
+                </h3>
+                <p className="text-sm text-base-content/40">
+                  Add items from Image or Text mode to get started
+                </p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                <QueueList
+                  items={items}
+                  onDelete={handleDelete}
+                  onViewGcode={handleViewGcode}
+                  onReorder={fetchQueue}
+                />
+              </div>
+            )}
+          </div>
+
+          {/* Manual Control - Takes 4 columns */}
+          <div className="lg:col-span-4">
+            <ManualControl />
+          </div>
         </div>
       </div>
 
@@ -491,7 +437,7 @@ const QueuePage = () => {
         isOpen={isSerialLogOpen}
         onClose={() => setIsSerialLogOpen(false)}
         gcode={currentQueueGcode}
-        port="COM4"
+        port={SERIAL_CONFIG.DEFAULT_PORT}
       />
     </div>
   );

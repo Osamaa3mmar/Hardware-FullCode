@@ -1,4 +1,6 @@
-const API_BASE_URL = "http://localhost:3000/api/queue";
+import { API_CONFIG, SERIAL_CONFIG } from '../config/api.config.js';
+
+const API_BASE_URL = API_CONFIG.ENDPOINTS.QUEUE;
 
 /**
  * Get all queue items
@@ -102,10 +104,10 @@ export async function getQueueStatus() {
 
 /**
  * Start processing queue
- * @param {string} port - Serial port (default: COM4)
- * @param {number} baudRate - Baud rate (default: 115200)
+ * @param {string} port - Serial port (default: configured in SERIAL_CONFIG)
+ * @param {number} baudRate - Baud rate (default: configured in SERIAL_CONFIG)
  */
-export async function processQueue(port = "COM4", baudRate = 115200) {
+export async function processQueue(port = SERIAL_CONFIG.DEFAULT_PORT, baudRate = SERIAL_CONFIG.DEFAULT_BAUD_RATE) {
   const response = await fetch(`${API_BASE_URL}/process`, {
     method: "POST",
     headers: {
@@ -124,10 +126,10 @@ export async function processQueue(port = "COM4", baudRate = 115200) {
 
 /**
  * Process only the next (first pending) item in queue
- * @param {string} port - Serial port (default: COM4)
- * @param {number} baudRate - Baud rate (default: 115200)
+ * @param {string} port - Serial port (default: configured in SERIAL_CONFIG)
+ * @param {number} baudRate - Baud rate (default: configured in SERIAL_CONFIG)
  */
-export async function processNextInQueue(port = "COM4", baudRate = 115200) {
+export async function processNextInQueue(port = SERIAL_CONFIG.DEFAULT_PORT, baudRate = SERIAL_CONFIG.DEFAULT_BAUD_RATE) {
   const response = await fetch(`${API_BASE_URL}/process-next`, {
     method: "POST",
     headers: {
@@ -147,11 +149,11 @@ export async function processNextInQueue(port = "COM4", baudRate = 115200) {
 /**
  * Send a single command to Arduino
  * @param {string} command - Command to send (e.g., "M3 S3000")
- * @param {string} port - Serial port (default: COM4)
- * @param {number} baudRate - Baud rate (default: 115200)
+ * @param {string} port - Serial port (default: configured in SERIAL_CONFIG)
+ * @param {number} baudRate - Baud rate (default: configured in SERIAL_CONFIG)
  */
-export async function sendCommand(command, port = "COM4", baudRate = 115200) {
-  const response = await fetch("http://localhost:3000/api/serial/command", {
+export async function sendCommand(command, port = SERIAL_CONFIG.DEFAULT_PORT, baudRate = SERIAL_CONFIG.DEFAULT_BAUD_RATE) {
+  const response = await fetch(`${API_CONFIG.ENDPOINTS.SERIAL}/command`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
