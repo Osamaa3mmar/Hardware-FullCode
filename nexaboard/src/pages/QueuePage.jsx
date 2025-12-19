@@ -5,6 +5,7 @@ import { io } from "socket.io-client";
 import QueueList from "../components/queue/QueueList";
 import QueueControls from "../components/queue/QueueControls";
 import ManualControl from "../components/queue/ManualControl";
+import RecoveryButton from "../components/RecoveryButton";
 import SerialLogModal from "../components/SerialLogModal";
 import { SOCKET_CONFIG, SERIAL_CONFIG } from "../config/api.config.js";
 import {
@@ -327,7 +328,8 @@ const QueuePage = () => {
           </div>
 
           {/* Manual Control - Takes 4 columns */}
-          <div className="lg:col-span-4">
+          <div className="lg:col-span-4 space-y-4">
+            <RecoveryButton />
             <ManualControl />
           </div>
         </div>

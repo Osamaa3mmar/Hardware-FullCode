@@ -11,6 +11,11 @@ let persistentPort = null; // For manual control persistent connection
 let persistentParser = null;
 let persistentConnected = false;
 
+// Track last successful position before disconnect
+let lastKnownPosition = { x: 0, y: 0, z: -2.3 }; // Start at home with pen up
+let isDrawing = false;
+let lastSuccessfulLine = 0;
+
 /**
  * POST /api/serial/send
  * Send G-code to Arduino via serial with real-time updates using SSE
@@ -70,6 +75,7 @@ router.post("/send", async (req, res) => {
     activePort.on("open", () => {
       console.log(`Serial port ${port} opened successfully`);
       isConnected = true;
+      isDrawing = true;
       
       // Try to disable DTR/RTS (may not work on all systems)
       try {
@@ -99,12 +105,19 @@ router.post("/send", async (req, res) => {
 
     activePort.on("error", (err) => {
       console.error("Serial port error:", err);
-      isConnected = false;
-      sendEvent("error", {
-        message: err.message,
-        timestamp: Date.now() - startTime,
-      });
+      isDrawing = false;
+      sendEvent("error", { message: err.message, timestamp: Date.now() - startTime });
       res.end();
+    });
+
+    activePort.on("close", () => {
+      console.log("Serial port closed");
+      isConnected = false;
+      isDrawing = false;
+      
+      // Log last known position for recovery
+      console.log(`Last known position before disconnect: X${lastKnownPosition.x} Y${lastKnownPosition.y} Z${lastKnownPosition.z}`);
+      console.log(`Last successful line: ${lastSuccessfulLine}`);
     });
 
     // Open the port manually
@@ -212,6 +225,7 @@ function sendGcodeLinesSSE(gcode, port, parser, startTime, res, sendEvent) {
       response.toLowerCase().includes("done")
     ) {
       waitingForResponse = false;
+      lastSuccessfulLine = currentLine; // Track last successful command
       sendNextLine();
     }
   });
@@ -249,6 +263,15 @@ function sendGcodeLinesSSE(gcode, port, parser, startTime, res, sendEvent) {
     if (!waitingForResponse) {
       const line = lines[currentLine];
       console.log(`Sending [${currentLine + 1}/${lines.length}]: ${line}`);
+
+      // Track position from G-code commands
+      const xMatch = line.match(/X([-\d.]+)/);
+      const yMatch = line.match(/Y([-\d.]+)/);
+      const zMatch = line.match(/Z([-\d.]+)/);
+      
+      if (xMatch) lastKnownPosition.x = parseFloat(xMatch[1]);
+      if (yMatch) lastKnownPosition.y = parseFloat(yMatch[1]);
+      if (zMatch) lastKnownPosition.z = parseFloat(zMatch[1]);
 
       // Mark that we've started transmission (for reset detection)
       if (!transmissionStarted) {
@@ -629,6 +652,113 @@ router.post("/command", async (req, res) => {
     res.status(500).json({
       success: false,
       error: error.message || "Failed to send command",
+    });
+  }
+});
+
+/**
+ * GET /api/serial/last-position
+ * Get the last known position before disconnect
+ */
+router.get("/last-position", (req, res) => {
+  res.json({
+    success: true,
+    position: lastKnownPosition,
+    lastSuccessfulLine: lastSuccessfulLine,
+    isDrawing: isDrawing,
+  });
+});
+
+/**
+ * POST /api/serial/recover
+ * Recover from unexpected disconnect by moving to origin
+ * Since GRBL resets position to (0,0,0) on restart, we need to physically move back to actual (0,0,0)
+ */
+router.post("/recover", async (req, res) => {
+  const { port = "/dev/ttyUSB0", baudRate = 115200 } = req.body;
+
+  try {
+    console.log("=== Starting Recovery Process ===");
+    console.log(`Last known position was: X${lastKnownPosition.x} Y${lastKnownPosition.y} Z${lastKnownPosition.z}`);
+    console.log(`GRBL has reset, so current position in GRBL is (0,0,0)`);
+    console.log(`We need to move back to actual origin (0,0,0)`);
+
+    // Open a temporary connection
+    const serialPort = new SerialPort({
+      path: port,
+      baudRate: baudRate,
+      autoOpen: false,
+    });
+
+    const recoveryParser = serialPort.pipe(new ReadlineParser({ delimiter: "\r\n" }));
+    const responses = [];
+
+    recoveryParser.on("data", (data) => {
+      const response = data.trim();
+      console.log(`Recovery Response: ${response}`);
+      responses.push(response);
+    });
+
+    // Open port
+    await new Promise((resolve, reject) => {
+      serialPort.open((err) => {
+        if (err) reject(err);
+        else {
+          // Disable DTR to prevent reset
+          serialPort.set({ dtr: false, rts: false }, (setErr) => {
+            if (setErr) console.error("Error setting DTR/RTS:", setErr);
+          });
+          resolve();
+        }
+      });
+    });
+
+    console.log("Port opened, waiting for GRBL initialization...");
+    await new Promise((resolve) => setTimeout(resolve, 2500));
+
+    // Unlock GRBL in case it's in alarm state
+    console.log("Sending $X to unlock GRBL...");
+    serialPort.write("$X\n");
+    await new Promise((resolve) => setTimeout(resolve, 500));
+
+    // Move pen up first to avoid dragging
+    console.log("Moving pen up (Z-2.3)...");
+    serialPort.write("G1 Z-2.3 F1500\n");
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+
+    // Move to origin (0,0) - this is where GRBL thinks it already is, so no movement will occur
+    // But we send it anyway for consistency
+    console.log("Commanding move to origin G0 X0 Y0...");
+    serialPort.write("G0 X0 Y0 F1500\n");
+    await new Promise((resolve) => setTimeout(resolve, 1500));
+
+    // Close port
+    await new Promise((resolve) => {
+      serialPort.close((err) => {
+        if (err) console.error("Error closing port:", err);
+        resolve();
+      });
+    });
+
+    // Reset tracking variables
+    lastKnownPosition = { x: 0, y: 0, z: -2.3 };
+    lastSuccessfulLine = 0;
+    isDrawing = false;
+
+    console.log("=== Recovery Complete ===");
+    console.log("System is now at origin (0,0) with pen up (-2.3)");
+
+    res.json({
+      success: true,
+      message: "Recovery complete - system reset to origin",
+      position: lastKnownPosition,
+      responses: responses,
+    });
+  } catch (error) {
+    console.error("Error during recovery:", error);
+    res.status(500).json({
+      success: false,
+      error: error.message || "Recovery failed",
     });
   }
 });

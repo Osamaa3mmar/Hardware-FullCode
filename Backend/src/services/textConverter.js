@@ -16,8 +16,8 @@ export function textToGcode(text, fontData, settings = {}) {
     spacing = 2, // Character spacing in mm
     lineSpacing = 1.5, // Line spacing multiplier
     feedRate = 1500, // Feed rate in mm/min
-    penUp = 5, // Z height for pen up
-    penDown = -2, // Z height for pen down
+    penUp = -2.3, // Z height for pen up
+    penDown = 0, // Z height for pen down
     alignment = "left", // left, center, right
   } = settings;
 

@@ -25,8 +25,8 @@ router.post("/convert", async (req, res) => {
       spacing = 2,
       lineSpacing = 1.5,
       feedRate = 1500,
-      penUp = 5,
-      penDown = -2,
+      penUp = -2.3,
+      penDown = 0,
       alignment = "left",
     } = req.body;
 

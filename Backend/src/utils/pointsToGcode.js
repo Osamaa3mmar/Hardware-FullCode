@@ -3,14 +3,14 @@
  * @param {Array<Array<{x: number, y: number}>>} paths - Array of paths, each containing coordinate points
  * @param {Object} options - G-code generation options
  * @param {number} options.feedRate - Feed rate in mm/min (default: 1500)
- * @param {number} options.penUp - Z position for pen up (default: 5)
- * @param {number} options.penDown - Z position for pen down (default: -2)
+ * @param {number} options.penUp - Z position for pen up (default: -2.3)
+ * @param {number} options.penDown - Z position for pen down (default: 0)
  * @returns {Object} - Generated G-code text and statistics
  */
 function pointsToGcode(paths, options = {}) {
   const feedRate = options.feedRate || 1500;
-  const penUp = options.penUp || 5;
-  const penDown = options.penDown || -2;
+  const penUp = options.penUp || -2.3;
+  const penDown = options.penDown || 0;
 
   const gcode = [];
   let totalDistance = 0;

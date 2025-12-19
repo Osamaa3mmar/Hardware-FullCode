@@ -76,8 +76,8 @@ router.post("/convert", async (req, res) => {
     // Convert points to G-code
     const options = {
       feedRate: 1500,
-      penUp: 5,
-      penDown: -2,
+      penUp: -2.3,
+      penDown: 0,
     };
 
     const result = pointsToGcode(optimizedPoints, options);

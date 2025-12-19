@@ -6,8 +6,8 @@
  */
 export function pointsToGcode(paths, options = {}) {
   const feedRate = options.feedRate || 1500;
-  const penUp = options.penUp || 5;
-  const penDown = options.penDown || -2;
+  const penUp = options.penUp || -2.3;
+  const penDown = options.penDown || 0;
 
   const gcode = [];
   let totalDistance = 0;
